@@ -1,0 +1,7 @@
+streamSize = 100
+maxPrice = 100
+numOfSymbol = 2
+maxVolume = 1000
+randomSeed = 11
+increaseProbability = 101
+end

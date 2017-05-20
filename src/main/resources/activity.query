@@ -1,0 +1,6 @@
+PATTERN SEQ(Activity a, Activity+ b, Activity c)
+WHERE skip-till-any-match 
+AND  b[1].rte > a.rte   
+AND b[i].rte > b[i-1].rte
+AND c.rte < a.rte
+WITHIN 5

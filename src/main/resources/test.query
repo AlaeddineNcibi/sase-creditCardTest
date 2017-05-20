@@ -1,0 +1,8 @@
+PATTERN SEQ(stock a, stock b, stock c)
+WHERE skip-till-any-match (a,b,c) 
+{
+
+AND a.price < b.price
+AND c.price < b.price  
+}
+WITHIN 5000
