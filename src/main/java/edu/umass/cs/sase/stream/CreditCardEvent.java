@@ -41,6 +41,8 @@ public class CreditCardEvent implements Event {
 			return this.ltion;
 		if (attributeName.equalsIgnoreCase("mount"))
 			return (int) this.mount;
+		if (attributeName.equalsIgnoreCase("crdId"))
+			return (int) hashit(this.crdId);
 
 		return 0;
 	}
@@ -78,6 +80,15 @@ public class CreditCardEvent implements Event {
 		if (attributeName.equalsIgnoreCase("eventType"))
 			return 2;
 		return 0;
+	}
+
+	private int hashit(String str) {
+		int hash = 7;
+		for (int i = 0; i < str.length(); i++) {
+			hash = hash * 31 + str.charAt(i);
+		}
+
+		return hash;
 	}
 
 	@Override

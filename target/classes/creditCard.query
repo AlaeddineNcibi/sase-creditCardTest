@@ -1,5 +1,6 @@
 PATTERN SEQ(creditCard a, creditCard b, creditCard c)
-WHERE skip-till-next-match 
+WHERE partition-contiguity
+AND [crdId]
 AND b.mount > a.mount
 AND c.mount > b.mount
 WITHIN 500000
