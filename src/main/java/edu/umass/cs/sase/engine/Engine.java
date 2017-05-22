@@ -21,7 +21,7 @@
  * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF 
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 package edu.umass.cs.sase.engine;
 
 import java.io.BufferedWriter;
@@ -30,17 +30,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import net.sourceforge.jeval.EvaluationException;
 import edu.lhc.krr.sase.history.MatchedRunDescriptor;
 import edu.umass.cs.sase.query.Edge;
 import edu.umass.cs.sase.query.NFA;
 import edu.umass.cs.sase.query.State;
 import edu.umass.cs.sase.stream.Event;
 import edu.umass.cs.sase.stream.Stream;
-import net.sourceforge.jeval.EvaluationException;
-
 
 /**
  * This is the processing engine.
+ * 
  * @author haopeng
  */
 public class Engine {
@@ -64,49 +64,48 @@ public class Engine {
 	 * The active runs in memory
 	 */
 	ArrayList<Run> activeRuns;
-	
+
 	HashMap<Integer, ArrayList<Run>> activeRunsByPartition;
 	/**
 	 * The runs which can be removed from the active runs.
 	 */
-	ArrayList<Run> toDeleteRuns;	
+	ArrayList<Run> toDeleteRuns;
 	/**
 	 * The matches
 	 */
 	MatchController matches;
-	
+
 	/**
 	 * The buffered events for the negation components
 	 */
 	ArrayList<Event> negationEvents;
-	
+
 	HashMap<Integer, ArrayList<Event>> negationEventsByPartition;
-	
-	
+
 	/**
-	 * description of the matched run to calculate  the zvalue
+	 * description of the matched run to calculate the zvalue
 	 */
 	MatchedRunDescriptor runDescriptor;
-	
-	
+
 	/**
 	 * The default constructor.
 	 */
-	
-	public Engine(){
+
+	public Engine() {
 		buffer = new EventBuffer();
 		engineRunController = new RunPool();
-		this.activeRuns = new ArrayList<Run>();		
+		this.activeRuns = new ArrayList<Run>();
 		this.toDeleteRuns = new ArrayList<Run>();
 		this.matches = new MatchController();
-		Profiling.resetProfiling();	
-	
+		Profiling.resetProfiling();
+
 	}
+
 	/**
 	 * This method initializes the engine.
 	 */
-	
-	public void initialize(){
+
+	public void initialize() {
 		input = null;
 		buffer = new EventBuffer();
 		engineRunController = new RunPool();
@@ -114,17 +113,20 @@ public class Engine {
 		this.activeRunsByPartition = new HashMap<Integer, ArrayList<Run>>();
 		this.toDeleteRuns = new ArrayList<Run>();
 		this.matches = new MatchController();
-		
-		Profiling.resetProfiling();	
-	
+
+		Profiling.resetProfiling();
+
 	}
+
 	/**
 	 * This method is used to warm up the engine.
+	 * 
 	 * @throws CloneNotSupportedException
 	 * @throws EvaluationException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public void warmUp() throws CloneNotSupportedException, EvaluationException, IOException{
+	public void warmUp() throws CloneNotSupportedException,
+			EvaluationException, IOException {
 		this.runEngine();
 		buffer = new EventBuffer();
 		engineRunController = new RunPool();
@@ -132,152 +134,170 @@ public class Engine {
 		this.toDeleteRuns = new ArrayList<Run>();
 		this.matches = new MatchController();
 		Profiling.resetProfiling();
-		
-		
+
 	}
-	
+
 	/**
 	 * This is the main run logic method
-	 * @throws IOException 
+	 * 
+	 * @throws IOException
 	 * 
 	 */
-	
-	public void runEngine() throws CloneNotSupportedException, EvaluationException, IOException{
-		ConfigFlags.timeWindow =  this.nfa.getTimeWindow();
+
+	public void runEngine() throws CloneNotSupportedException,
+			EvaluationException, IOException {
+		ConfigFlags.timeWindow = this.nfa.getTimeWindow();
 		ConfigFlags.sequenceLength = this.nfa.getSize();
 		ConfigFlags.selectionStrategy = this.nfa.getSelectionStrategy();
 		ConfigFlags.hasPartitionAttribute = this.nfa.isHasPartitionAttribute();
 		ConfigFlags.hasNegation = this.nfa.isHasNegation();
-		
-		if(ConfigFlags.hasNegation){
+
+		if (ConfigFlags.hasNegation) {
 			this.runNegationEngine();
-		}else if(ConfigFlags.selectionStrategy.equalsIgnoreCase("skip-till-any-match")){
+		} else if (ConfigFlags.selectionStrategy
+				.equalsIgnoreCase("skip-till-any-match")) {
 			this.runSkipTillAnyEngine();
-		}else if(ConfigFlags.selectionStrategy.equalsIgnoreCase("skip-till-next-match")){
+		} else if (ConfigFlags.selectionStrategy
+				.equalsIgnoreCase("skip-till-next-match")) {
 			this.runSkipTillNextEngine();
-		}else if(ConfigFlags.selectionStrategy.equalsIgnoreCase("partition-contiguity")){
+		} else if (ConfigFlags.selectionStrategy
+				.equalsIgnoreCase("partition-contiguity")) {
 			this.runPartitionContiguityEngine();
 		}
-		
-		
+
 	}
+
 	/**
 	 * The main method for skip-till-any-match
+	 * 
 	 * @throws CloneNotSupportedException
 	 * @throws EvaluationException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public void runSkipTillAnyEngine() throws CloneNotSupportedException, EvaluationException, IOException{
-		if(!ConfigFlags.hasPartitionAttribute){
+	public void runSkipTillAnyEngine() throws CloneNotSupportedException,
+			EvaluationException, IOException {
+		if (!ConfigFlags.hasPartitionAttribute) {
 			Event e = null;
 			long currentTime = 0;
-			while ((e = this.input.popEvent())!= null){// evaluate event one by one
+			while ((e = this.input.popEvent()) != null) {// evaluate event one
+															// by one
 				currentTime = System.nanoTime();
 				this.evaluateRunsForSkipTillAny(e);// evaluate existing runs
-				if(this.toDeleteRuns.size() > 0){
+				if (this.toDeleteRuns.size() > 0) {
 					this.cleanRuns();
 				}
-				this.createNewRun(e);// create new run starting with this event if possible
-				
-				
+				this.createNewRun(e);// create new run starting with this event
+										// if possible
+
 				Profiling.totalRunTime += (System.nanoTime() - currentTime);
 				Profiling.numberOfEvents += 1;
-				//::TODO comment this
-				if (Profiling.numberOfEvents==10000)
+				// ::TODO comment this
+				if (Profiling.numberOfEvents == 10000)
 					System.in.read();
 			}
 		}
-		
-		if(ConfigFlags.hasPartitionAttribute){
+
+		if (ConfigFlags.hasPartitionAttribute) {
 			ConfigFlags.partitionAttribute = this.nfa.getPartitionAttribute();
 			this.activeRunsByPartition = new HashMap<Integer, ArrayList<Run>>();
 			Event e = null;
 			long currentTime = 0;
-			while ((e = this.input.popEvent())!= null){// evaluate event one by one
+			while ((e = this.input.popEvent()) != null) {// evaluate event one
+															// by one
 				currentTime = System.nanoTime();
-				this.evaluateRunsByPartitionForSkipTillAny(e);// evaluate existing runs
-				if(this.toDeleteRuns.size() > 0){
+				this.evaluateRunsByPartitionForSkipTillAny(e);// evaluate
+																// existing runs
+				if (this.toDeleteRuns.size() > 0) {
 					this.cleanRunsByPartition();
 				}
-				this.createNewRunByPartition(e);// create new run starting with this event if possible
-				
-				
+				this.createNewRunByPartition(e);// create new run starting with
+												// this event if possible
+
 				Profiling.totalRunTime += (System.nanoTime() - currentTime);
 				Profiling.numberOfEvents += 1;
-				
+
 			}
 		}
 	}
+
 	/**
 	 * The main method for skip-till-next-match
+	 * 
 	 * @throws CloneNotSupportedException
 	 * @throws EvaluationException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public void runSkipTillNextEngine() throws CloneNotSupportedException, EvaluationException, IOException{
-		if(!ConfigFlags.hasPartitionAttribute){
+	public void runSkipTillNextEngine() throws CloneNotSupportedException,
+			EvaluationException, IOException {
+		if (!ConfigFlags.hasPartitionAttribute) {
 			Event e = null;
 			long currentTime = 0;
-			while ((e = this.input.popEvent())!= null){// evaluate event one by one
+			while ((e = this.input.popEvent()) != null) {// evaluate event one
+															// by one
 				currentTime = System.nanoTime();
 				this.evaluateRunsForSkipTillNext(e);// evaluate existing runs
-				if(this.toDeleteRuns.size() > 0){
+				if (this.toDeleteRuns.size() > 0) {
 					this.cleanRuns();
 				}
-				this.createNewRun(e);// create new run starting with this event if possible
-				
-				
+				this.createNewRun(e);// create new run starting with this event
+										// if possible
+
 				Profiling.totalRunTime += (System.nanoTime() - currentTime);
 				Profiling.numberOfEvents += 1;
-				
+
 			}
 		}
-		
-		if(ConfigFlags.hasPartitionAttribute){
+
+		if (ConfigFlags.hasPartitionAttribute) {
 			ConfigFlags.partitionAttribute = this.nfa.getPartitionAttribute();
 			this.activeRunsByPartition = new HashMap<Integer, ArrayList<Run>>();
 			Event e = null;
 			long currentTime = 0;
-			while ((e = this.input.popEvent())!= null){// evaluate event one by one
+			while ((e = this.input.popEvent()) != null) {// evaluate event one
+															// by one
 				currentTime = System.nanoTime();
-				this.evaluateRunsByPartitionForSkipTillNext(e);// evaluate existing runs
-				if(this.toDeleteRuns.size() > 0){
+				this.evaluateRunsByPartitionForSkipTillNext(e);// evaluate
+																// existing runs
+				if (this.toDeleteRuns.size() > 0) {
 					this.cleanRunsByPartition();
 				}
-				this.createNewRunByPartition(e);// create new run starting with this event if possible
-				
-				
+				this.createNewRunByPartition(e);// create new run starting with
+												// this event if possible
+
 				Profiling.totalRunTime += (System.nanoTime() - currentTime);
 				Profiling.numberOfEvents += 1;
-				
+
 			}
 		}
 	}
-	
+
 	/**
-	 * This method is called when the query uses the partition-contiguity selection strategy
-	 * @throws CloneNotSupportedException 
-	 * @throws IOException 
-	 *  
+	 * This method is called when the query uses the partition-contiguity
+	 * selection strategy
+	 * 
+	 * @throws CloneNotSupportedException
+	 * @throws IOException
+	 * 
 	 */
-	
-	public void runPartitionContiguityEngine() throws EvaluationException, CloneNotSupportedException, IOException{
-		
+
+	public void runPartitionContiguityEngine() throws EvaluationException,
+			CloneNotSupportedException, IOException {
+
 		ConfigFlags.partitionAttribute = this.nfa.getPartitionAttribute();
 		ConfigFlags.hasPartitionAttribute = true;
 		this.activeRunsByPartition = new HashMap<Integer, ArrayList<Run>>();
-		
+
 		ConfigFlags.timeWindow = this.nfa.getTimeWindow();
 		ConfigFlags.sequenceLength = this.nfa.getSize();
 		ConfigFlags.selectionStrategy = this.nfa.getSelectionStrategy();
-		
+
 		Event e = null;
 		long currentTime = 0;
-		while((e = this.input.popEvent())!= null){
-			
+		while ((e = this.input.popEvent()) != null) {
+
 			currentTime = System.nanoTime();
 			this.evaluateRunsForPartitionContiguity(e);
-			if(this.toDeleteRuns.size() > 0){
+			if (this.toDeleteRuns.size() > 0) {
 				this.cleanRunsByPartition();
 			}
 			this.createNewRunByPartition(e);
@@ -285,595 +305,722 @@ public class Engine {
 			Profiling.numberOfEvents += 1;
 		}
 	}
+
 	/**
 	 * The main method when there is a negation component in the query
+	 * 
 	 * @throws CloneNotSupportedException
 	 * @throws EvaluationException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public void runNegationEngine() throws CloneNotSupportedException, EvaluationException, IOException{
-		if(!ConfigFlags.hasPartitionAttribute){
+	public void runNegationEngine() throws CloneNotSupportedException,
+			EvaluationException, IOException {
+		if (!ConfigFlags.hasPartitionAttribute) {
 			Event e = null;
 			long currentTime = 0;
 			this.negationEvents = new ArrayList<Event>();
-			while ((e = this.input.popEvent())!= null){// evaluate event one by one
+			while ((e = this.input.popEvent()) != null) {// evaluate event one
+															// by one
 				currentTime = System.nanoTime();
-				if(this.checkNegation(e)){
+				if (this.checkNegation(e)) {
 					this.negationEvents.add(e);
-				}else{
+				} else {
 					this.evaluateRunsForNegation(e);// evaluate existing runs
-					if(this.toDeleteRuns.size() > 0){
+					if (this.toDeleteRuns.size() > 0) {
 						this.cleanRuns();
 					}
-					this.createNewRun(e);// create new run starting with this event if possible
+					this.createNewRun(e);// create new run starting with this
+											// event if possible
 				}
-				
+
 				Profiling.totalRunTime += (System.nanoTime() - currentTime);
 				Profiling.numberOfEvents += 1;
-				
+
 			}
 		}
-		
-		if(ConfigFlags.hasPartitionAttribute){
+
+		if (ConfigFlags.hasPartitionAttribute) {
 			ConfigFlags.partitionAttribute = this.nfa.getPartitionAttribute();
 			this.activeRunsByPartition = new HashMap<Integer, ArrayList<Run>>();
 			this.negationEventsByPartition = new HashMap<Integer, ArrayList<Event>>();
-			
+
 			Event e = null;
 			long currentTime = 0;
-			while ((e = this.input.popEvent())!= null){// evaluate event one by one
+			while ((e = this.input.popEvent()) != null) {// evaluate event one
+															// by one
 				currentTime = System.nanoTime();
-				if(this.checkNegation(e)){
+				if (this.checkNegation(e)) {
 					this.indexNegationByPartition(e);
-				}else{
-					this.evaluateRunsByPartitionForNegation(e);// evaluate existing runs
-					if(this.toDeleteRuns.size() > 0){
+				} else {
+					this.evaluateRunsByPartitionForNegation(e);// evaluate
+																// existing runs
+					if (this.toDeleteRuns.size() > 0) {
 						this.cleanRunsByPartition();
 					}
-					this.createNewRunByPartition(e);// create new run starting with this event if possible
+					this.createNewRunByPartition(e);// create new run starting
+													// with this event if
+													// possible
 				}
-				
+
 				Profiling.totalRunTime += (System.nanoTime() - currentTime);
 				Profiling.numberOfEvents += 1;
-				
+
 			}
 		}
 	}
+
 	/**
-	 * This method will iterate all existing runs for the current event, for skip-till-any-match.
-	 * @param e The current event which is being evaluated.
+	 * This method will iterate all existing runs for the current event, for
+	 * skip-till-any-match.
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
 	 * @throws CloneNotSupportedException
 	 * @throws EvaluationException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-		
-		public void evaluateRunsForSkipTillAny(Event e) throws CloneNotSupportedException, EvaluationException, IOException{
-			int size = this.activeRuns.size();
-			for(int i = 0; i < size; i ++){
-				Run r = this.activeRuns.get(i);
-					if(r.isFull()){
-						continue;
-					}
-					this.evaluateEventForSkipTillAny(e, r);
-				}
-		}
-		/**
-		 * This method will iterate all existing runs for the current event, for skip-till-next-match.
-		 * @param e The current event which is being evaluated.
-		 * @throws CloneNotSupportedException
-		 * @throws EvaluationException
-		 * @throws IOException 
-		 */
-			
-			public void evaluateRunsForSkipTillNext(Event e) throws CloneNotSupportedException, EvaluationException, IOException{
-				int size = this.activeRuns.size();
-				for(int i = 0; i < size; i ++){
-					Run r = this.activeRuns.get(i);
-						if(r.isFull()){
-							continue;
-						}
-						this.evaluateEventForSkipTillNext(e, r);
-					}
-			}
-			/**
-			 * This method will iterate all existing runs for the current event, for queries with a negation component.
-			 * @param e The current event which is being evaluated.
-			 * @throws CloneNotSupportedException
-			 * @throws EvaluationException
-			 */
-			public void evaluateRunsForNegation(Event e) throws CloneNotSupportedException, EvaluationException{
-				int size = this.activeRuns.size();
-				for(int i = 0; i < size; i ++){
-					Run r = this.activeRuns.get(i);
-						if(r.isFull()){
-							continue;
-						}
-						this.evaluateEventForNegation(e, r);
-					}
-			}
 
-	
-	/**
-	 * This method will iterate runs in the same partition for the current event, for skip-till-any-match
-	 * @param e The current event which is being evaluated.
-	 * @throws CloneNotSupportedException
-	 * @throws IOException 
-	 */
-		public void evaluateRunsByPartitionForSkipTillAny(Event e) throws CloneNotSupportedException, IOException{
-			int key = e.getAttributeByName(ConfigFlags.partitionAttribute);
-			if(this.activeRunsByPartition.containsKey(key)){
-				ArrayList<Run> partitionedRuns = this.activeRunsByPartition.get(key);
-				int size = partitionedRuns.size();
-				for(int i = 0; i < size; i ++){
-					Run r = partitionedRuns.get(i);
-					if(r.isFull()){
-						continue;
-					}
-					this.evaluateEventOptimizedForSkipTillAny(e, r);//
-				}
+	public void evaluateRunsForSkipTillAny(Event e)
+			throws CloneNotSupportedException, EvaluationException, IOException {
+		int size = this.activeRuns.size();
+		for (int i = 0; i < size; i++) {
+			Run r = this.activeRuns.get(i);
+			if (r.isFull()) {
+				continue;
 			}
+			this.evaluateEventForSkipTillAny(e, r);
 		}
-		
-		/**
-		 * This method will iterate runs in the same partition for the current event, for skip-till-next-match
-		 * @param e The current event which is being evaluated.
-		 * @throws CloneNotSupportedException
-		 * @throws IOException 
-		 */
-			public void evaluateRunsByPartitionForSkipTillNext(Event e) throws CloneNotSupportedException, IOException{
-				int key = e.getAttributeByName(ConfigFlags.partitionAttribute);
-				if(this.activeRunsByPartition.containsKey(key)){
-					ArrayList<Run> partitionedRuns = this.activeRunsByPartition.get(key);
-					int size = partitionedRuns.size();
-					for(int i = 0; i < size; i ++){
-						Run r = partitionedRuns.get(i);
-						if(r.isFull()){
-							continue;
-						}
-						this.evaluateEventOptimizedForSkipTillNext(e, r);//
-					}
-				}
-			}
-			/**
-			 * This method will iterate runs in the same partition for the current event, for queries with a negation component.
-			 * @param e The current event which is being evaluated.
-			 * @throws CloneNotSupportedException
-			 * @throws IOException 
-			 */
-			public void evaluateRunsByPartitionForNegation(Event e) throws CloneNotSupportedException, IOException{
-				int key = e.getAttributeByName(ConfigFlags.partitionAttribute);
-				if(this.activeRunsByPartition.containsKey(key)){
-					ArrayList<Run> partitionedRuns = this.activeRunsByPartition.get(key);
-					int size = partitionedRuns.size();
-					for(int i = 0; i < size; i ++){
-						Run r = partitionedRuns.get(i);
-						if(r.isFull()){
-							continue;
-						}
-						this.evaluateEventOptimizedForNegation(e, r);//
-					}
-				}
-			}
+	}
 
 	/**
-	 * If the selection strategy is partition-contiguity, this method is called and it will iterate runs in the same partition for the current event
-	 * @param e The current event which is being evaluated.
+	 * This method will iterate all existing runs for the current event, for
+	 * skip-till-next-match.
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
 	 * @throws CloneNotSupportedException
-	 * @throws IOException 
+	 * @throws EvaluationException
+	 * @throws IOException
 	 */
-	public void evaluateRunsForPartitionContiguity(Event e) throws CloneNotSupportedException, IOException{
+
+	public void evaluateRunsForSkipTillNext(Event e)
+			throws CloneNotSupportedException, EvaluationException, IOException {
+		int size = this.activeRuns.size();
+		for (int i = 0; i < size; i++) {
+			Run r = this.activeRuns.get(i);
+			if (r.isFull()) {
+				continue;
+			}
+			this.evaluateEventForSkipTillNext(e, r);
+		}
+	}
+
+	/**
+	 * This method will iterate all existing runs for the current event, for
+	 * queries with a negation component.
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @throws CloneNotSupportedException
+	 * @throws EvaluationException
+	 */
+	public void evaluateRunsForNegation(Event e)
+			throws CloneNotSupportedException, EvaluationException {
+		int size = this.activeRuns.size();
+		for (int i = 0; i < size; i++) {
+			Run r = this.activeRuns.get(i);
+			if (r.isFull()) {
+				continue;
+			}
+			this.evaluateEventForNegation(e, r);
+		}
+	}
+
+	/**
+	 * This method will iterate runs in the same partition for the current
+	 * event, for skip-till-any-match
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @throws CloneNotSupportedException
+	 * @throws IOException
+	 */
+	public void evaluateRunsByPartitionForSkipTillAny(Event e)
+			throws CloneNotSupportedException, IOException {
 		int key = e.getAttributeByName(ConfigFlags.partitionAttribute);
-		if(this.activeRunsByPartition.containsKey(key)){
-			ArrayList<Run> partitionedRuns = this.activeRunsByPartition.get(key);
+		if (this.activeRunsByPartition.containsKey(key)) {
+			ArrayList<Run> partitionedRuns = this.activeRunsByPartition
+					.get(key);
 			int size = partitionedRuns.size();
-			for(int i = 0; i < size; i ++){
+			for (int i = 0; i < size; i++) {
 				Run r = partitionedRuns.get(i);
-				if(r.isFull()){
+				if (r.isFull()) {
+					continue;
+				}
+				this.evaluateEventOptimizedForSkipTillAny(e, r);//
+			}
+		}
+	}
+
+	/**
+	 * This method will iterate runs in the same partition for the current
+	 * event, for skip-till-next-match
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @throws CloneNotSupportedException
+	 * @throws IOException
+	 */
+	public void evaluateRunsByPartitionForSkipTillNext(Event e)
+			throws CloneNotSupportedException, IOException {
+		int key = e.getAttributeByName(ConfigFlags.partitionAttribute);
+		if (this.activeRunsByPartition.containsKey(key)) {
+			ArrayList<Run> partitionedRuns = this.activeRunsByPartition
+					.get(key);
+			int size = partitionedRuns.size();
+			for (int i = 0; i < size; i++) {
+				Run r = partitionedRuns.get(i);
+				if (r.isFull()) {
+					continue;
+				}
+				this.evaluateEventOptimizedForSkipTillNext(e, r);//
+			}
+		}
+	}
+
+	/**
+	 * This method will iterate runs in the same partition for the current
+	 * event, for queries with a negation component.
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @throws CloneNotSupportedException
+	 * @throws IOException
+	 */
+	public void evaluateRunsByPartitionForNegation(Event e)
+			throws CloneNotSupportedException, IOException {
+		int key = e.getAttributeByName(ConfigFlags.partitionAttribute);
+		if (this.activeRunsByPartition.containsKey(key)) {
+			ArrayList<Run> partitionedRuns = this.activeRunsByPartition
+					.get(key);
+			int size = partitionedRuns.size();
+			for (int i = 0; i < size; i++) {
+				Run r = partitionedRuns.get(i);
+				if (r.isFull()) {
+					continue;
+				}
+				this.evaluateEventOptimizedForNegation(e, r);//
+			}
+		}
+	}
+
+	/**
+	 * If the selection strategy is partition-contiguity, this method is called
+	 * and it will iterate runs in the same partition for the current event
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @throws CloneNotSupportedException
+	 * @throws IOException
+	 */
+	public void evaluateRunsForPartitionContiguity(Event e)
+			throws CloneNotSupportedException, IOException {
+		int key = e.getAttributeByName(ConfigFlags.partitionAttribute);
+		if (this.activeRunsByPartition.containsKey(key)) {
+			ArrayList<Run> partitionedRuns = this.activeRunsByPartition
+					.get(key);
+			int size = partitionedRuns.size();
+			for (int i = 0; i < size; i++) {
+				Run r = partitionedRuns.get(i);
+				if (r.isFull()) {
 					continue;
 				}
 				this.evaluateEventForPartitonContiguityOptimized(e, r);//
 			}
 		}
 	}
-	
 
 	/**
 	 * This method evaluates the event for a given run, for skip-till-any-match
-	 * @param e The current event which is being evaluated.
-	 * @param r The run against which the evaluation goes
-	 * @throws CloneNotSupportedException 
-	 * @throws IOException 
-	 */
-	public void evaluateEventOptimizedForSkipTillAny(Event e, Run r) throws CloneNotSupportedException, IOException{
-		int checkResult = this.checkPredicateOptimized(e, r);
-		switch(checkResult){
-			case 1:
-				boolean timeWindow = this.checkTimeWindow(e, r);
-				if(timeWindow){
-					Run newRun = this.cloneRun(r);
-					this.addRunByPartition(newRun);
-					
-					this.addEventToRun(r, e);
-				}else{
-					this.toDeleteRuns.add(r);
-				}
-				break;
-			case 2:
-				Run newRun = this.cloneRun(r);
-				this.addRunByPartition(newRun);
-				  
-				r.proceed();
-				this.addEventToRun(r, e);
-		}
-	}
-	/**
-	 * This method evaluates the event for a given run, for skip-till-next-match.
-	 * @param e The current event which is being evaluated.
-	 * @param r The run against which the evaluation goes
-	 * @throws IOException 
-	 */
-	public void evaluateEventOptimizedForSkipTillNext(Event e, Run r) throws IOException{
-		int checkResult = this.checkPredicateOptimized(e, r);
-		switch(checkResult){
-			case 1:
-				boolean timeWindow = this.checkTimeWindow(e, r);
-				if(timeWindow){
-					this.addEventToRun(r, e);
-				}else{
-					this.toDeleteRuns.add(r);
-				}
-				break;
-			case 2:
-				r.proceed();
-				this.addEventToRun(r, e);
-		}
-	}
-	/**
-	 * This method evaluates the event for a given run, for queries with a negation component.
-	 * @param e The current event which is being evaluated.
-	 * @param r The run against which the evaluation goes
-	 * @throws IOException 
-	 */
-	public void evaluateEventOptimizedForNegation(Event e, Run r) throws CloneNotSupportedException, IOException{
-		int checkResult = this.checkPredicateOptimized(e, r);
-		switch(checkResult){
-			case 1:
-				boolean timeWindow = this.checkTimeWindow(e, r);
-				if(timeWindow){
-					Run newRun = this.cloneRun(r);
-					this.addRunByPartition(newRun);
-					
-					this.addEventToRunForNegation(r, e);
-				}else{
-					this.toDeleteRuns.add(r);
-				}
-				break;
-			case 2:
-				Run newRun = this.cloneRun(r);
-				this.addRunByPartition(newRun);
-				  
-				r.proceed();
-				this.addEventToRunForNegation(r, e);
-		}
-	}
-	/**
-	 * If the selection strategy is partition-contiguity, this method is called, and it evaluates the event for a given run
-	 * @param e The current event which is being evaluated
-	 * @param r The run against which the evaluation goes
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @param r
+	 *            The run against which the evaluation goes
 	 * @throws CloneNotSupportedException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public void evaluateEventForPartitonContiguityOptimized(Event e, Run r) throws CloneNotSupportedException, IOException{
+	public void evaluateEventOptimizedForSkipTillAny(Event e, Run r)
+			throws CloneNotSupportedException, IOException {
 		int checkResult = this.checkPredicateOptimized(e, r);
-		switch(checkResult){
-			case 0: 
-				this.toDeleteRuns.add(r); 
-				break;
-			case 1:
-				boolean timeWindow = this.checkTimeWindow(e, r);
-				if(timeWindow){
-					this.addEventToRun(r, e);
-				}else{
-					this.toDeleteRuns.add(r);
-				}
-				break;
-			case 2:
-				r.proceed();
+		switch (checkResult) {
+		case 1:
+			boolean timeWindow = this.checkTimeWindow(e, r);
+			if (timeWindow) {
+				Run newRun = this.cloneRun(r);
+				this.addRunByPartition(newRun);
+
 				this.addEventToRun(r, e);
+			} else {
+				this.toDeleteRuns.add(r);
+			}
+			break;
+		case 2:
+			Run newRun = this.cloneRun(r);
+			this.addRunByPartition(newRun);
+
+			r.proceed();
+			this.addEventToRun(r, e);
 		}
-		
-		
-}
+	}
+
+	/**
+	 * This method evaluates the event for a given run, for
+	 * skip-till-next-match.
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @param r
+	 *            The run against which the evaluation goes
+	 * @throws IOException
+	 */
+	public void evaluateEventOptimizedForSkipTillNext(Event e, Run r)
+			throws IOException {
+		int checkResult = this.checkPredicateOptimized(e, r);
+		switch (checkResult) {
+		case 1:
+			boolean timeWindow = this.checkTimeWindow(e, r);
+			if (timeWindow) {
+				this.addEventToRun(r, e);
+			} else {
+				this.toDeleteRuns.add(r);
+			}
+			break;
+		case 2:
+			r.proceed();
+			this.addEventToRun(r, e);
+		}
+	}
+
+	/**
+	 * This method evaluates the event for a given run, for queries with a
+	 * negation component.
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated.
+	 * @param r
+	 *            The run against which the evaluation goes
+	 * @throws IOException
+	 */
+	public void evaluateEventOptimizedForNegation(Event e, Run r)
+			throws CloneNotSupportedException, IOException {
+		int checkResult = this.checkPredicateOptimized(e, r);
+		switch (checkResult) {
+		case 1:
+			boolean timeWindow = this.checkTimeWindow(e, r);
+			if (timeWindow) {
+				Run newRun = this.cloneRun(r);
+				this.addRunByPartition(newRun);
+
+				this.addEventToRunForNegation(r, e);
+			} else {
+				this.toDeleteRuns.add(r);
+			}
+			break;
+		case 2:
+			Run newRun = this.cloneRun(r);
+			this.addRunByPartition(newRun);
+
+			r.proceed();
+			this.addEventToRunForNegation(r, e);
+		}
+	}
+
+	/**
+	 * If the selection strategy is partition-contiguity, this method is called,
+	 * and it evaluates the event for a given run
+	 * 
+	 * @param e
+	 *            The current event which is being evaluated
+	 * @param r
+	 *            The run against which the evaluation goes
+	 * @throws CloneNotSupportedException
+	 * @throws IOException
+	 */
+	public void evaluateEventForPartitonContiguityOptimized(Event e, Run r)
+			throws CloneNotSupportedException, IOException {
+		int checkResult = this.checkPredicateOptimized(e, r);
+		switch (checkResult) {
+		case 0:
+			this.toDeleteRuns.add(r);
+			break;
+		case 1:
+			boolean timeWindow = this.checkTimeWindow(e, r);
+			if (timeWindow) {
+				this.addEventToRun(r, e);
+			} else {
+				this.toDeleteRuns.add(r);
+			}
+			break;
+		case 2:
+			r.proceed();
+			this.addEventToRun(r, e);
+		}
+
+	}
 
 	/**
 	 * This method evaluates an event against a run, for skip-till-any-match
-	 * @param e The event which is being evaluated.
-	 * @param r The run which the event is being evaluated against.
+	 * 
+	 * @param e
+	 *            The event which is being evaluated.
+	 * @param r
+	 *            The run which the event is being evaluated against.
 	 * @throws CloneNotSupportedException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public void evaluateEventForSkipTillAny(Event e, Run r) throws CloneNotSupportedException, IOException{
+	public void evaluateEventForSkipTillAny(Event e, Run r)
+			throws CloneNotSupportedException, IOException {
 		boolean checkResult = true;
-		
-		checkResult = this.checkPredicate(e, r);// check predicate
-			if(checkResult){ // the predicate if ok.
-				checkResult = this.checkTimeWindow(e, r); // the time window is ok
-				if(checkResult){// predicate and time window are ok
-					this.buffer.bufferEvent(e);// add the event to buffer
-					int oldState = 0;
-					int newState = 0;
-					
-						Run newRun = this.cloneRun(r); // clone this run
-						
-						//:TODO change neurun with r
-						oldState = newRun.getCurrentState();
-						newRun.addEvent(e);					// add the event to this run
-						newState = newRun.getCurrentState();
-						if(oldState != newState){
-							this.activeRuns.add(newRun);
-							this.outputPartialMatch(new Match(newRun, this.nfa, this.buffer,runDescriptor),newRun.clonedId);						//TODO print this new run
-						}else{//kleene closure
-							if(newRun.isFull){
-								//check match and output match
-								if(newRun.checkMatch()){
-									this.outputMatch(new Match(newRun, this.nfa, this.buffer,runDescriptor), newRun.clonedId);
-									Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-															
-								}
-							}else{
-								//check proceed
-								if(this.checkProceed(newRun)){
-									Run newerRun = this.cloneRun(newRun);
-									this.activeRuns.add(newRun);
-									newerRun.proceed();
-									if(newerRun.isComplete()){
-										this.outputMatch(new Match(r, this.nfa, this.buffer,runDescriptor),newerRun.clonedId);
-										Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-										
-									}else {
-										this.outputPartialMatch(new Match(newRun, this.nfa, this.buffer,runDescriptor),newerRun.clonedId);						//TODO print this new run
 
-										this.activeRuns.add(newerRun);
-									}
-								}
+		checkResult = this.checkPredicate(e, r);// check predicate
+		if (checkResult) { // the predicate if ok.
+			checkResult = this.checkTimeWindow(e, r); // the time window is ok
+			if (checkResult) {// predicate and time window are ok
+				this.buffer.bufferEvent(e);// add the event to buffer
+				int oldState = 0;
+				int newState = 0;
+
+				Run newRun = this.cloneRun(r); // clone this run
+
+				// :TODO change neurun with r
+				oldState = newRun.getCurrentState();
+				newRun.addEvent(e); // add the event to this run
+				newState = newRun.getCurrentState();
+				if (oldState != newState) {
+					this.activeRuns.add(newRun);
+					this.outputPartialMatch(new Match(newRun, this.nfa,
+							this.buffer, runDescriptor), newRun.runID); // TODO
+																		// print
+																		// this
+																		// new
+																		// run
+				} else {// kleene closure
+					if (newRun.isFull) {
+						// check match and output match
+						if (newRun.checkMatch()) {
+							this.outputMatch(new Match(newRun, this.nfa,
+									this.buffer, runDescriptor),
+									newRun.clonedId);
+							Profiling.totalRunLifeTime += (System.nanoTime() - r
+									.getLifeTimeBegin());
+
+						}
+					} else {
+						// check proceed
+						if (this.checkProceed(newRun)) {
+							Run newerRun = this.cloneRun(newRun);
+							this.activeRuns.add(newRun);
+							newerRun.proceed();
+							if (newerRun.isComplete()) {
+								this.outputMatch(new Match(r, this.nfa,
+										this.buffer, runDescriptor),
+										newerRun.clonedId);
+								Profiling.totalRunLifeTime += (System
+										.nanoTime() - r.getLifeTimeBegin());
+
+							} else {
+								this.outputPartialMatch(new Match(newRun,
+										this.nfa, this.buffer, runDescriptor),
+										newerRun.clonedId); // TODO print this
+															// new run
+
+								this.activeRuns.add(newerRun);
 							}
 						}
-						
-					
-						
-					}else{
-						this.outputnNoNMatch(new Match(r, this.nfa, this.buffer,runDescriptor), r.clonedId);
-						this.toDeleteRuns.add(r);
 					}
-
 				}
-	}
-	/**
-	 * This method evaluates an event against a run, for skip-till-next-match
-	 * @param e The event which is being evaluated.
-	 * @param r The run which the event is being evaluated against.
-	 * @throws CloneNotSupportedException
-	 * @throws IOException 
-	 */
-	public void evaluateEventForSkipTillNext(Event e, Run r) throws CloneNotSupportedException, IOException{
-		boolean checkResult = true;
-		
-		
-		checkResult = this.checkPredicate(e, r);// check predicate
-			if(checkResult){ // the predicate if ok.
-				checkResult = this.checkTimeWindow(e, r); // the time window is ok
-				if(checkResult){// predicate and time window are ok
-					this.buffer.bufferEvent(e);// add the event to buffer
-					int oldState = 0;
-					int newState = 0;
-					
-					
-						oldState = r.getCurrentState();
-						r.addEvent(e);
-						newState = r.getCurrentState();
-						if(oldState == newState)//kleene closure
-							if(r.isFull){
-								//check match and output match
-								if(r.checkMatch()){
-									this.outputMatch(new Match(r, this.nfa, this.buffer,runDescriptor),r.runID);
-									Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-									this.toDeleteRuns.add(r);
-								}
-							}else{
-								//check proceed
-								if(this.checkProceed(r)){
-									Run newRun = this.cloneRun(r);
-									
-									this.activeRuns.add(newRun);
-									this.addRunByPartition(newRun);
-									r.proceed();
-									if(r.isComplete()){
-										this.outputMatch(new Match(r, this.nfa, this.buffer,runDescriptor),r.runID);
-										Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-										this.toDeleteRuns.add(r);
-										
-									}
-								}
-							}
-						
-						
-					}else{
-						this.toDeleteRuns.add(r);
-					}
 
-				}
-	}
-	/**
-	 * This method evaluates an event against a run, for queries with a negation component.
-	 * @param e The event which is being evaluated.
-	 * @param r The run which the event is being evaluated against.
-	 * @throws CloneNotSupportedException
-	 */
-	public void evaluateEventForNegation(Event e, Run r) throws CloneNotSupportedException{
-		boolean checkResult = true;
-		
-		
-		checkResult = this.checkPredicate(e, r);// check predicate
-			if(checkResult){ // the predicate if ok.
-				checkResult = this.checkTimeWindow(e, r); // the time window is ok
-				if(checkResult){// predicate and time window are ok
-					this.buffer.bufferEvent(e);// add the event to buffer
-					int oldState = 0;
-					int newState = 0;
-					
-					
-						Run newRun = this.cloneRun(r); // clone this run
-						
-						
-						oldState = newRun.getCurrentState();
-						newRun.addEvent(e);					// add the event to this run
-						newState = newRun.getCurrentState();
-						if(oldState != newState){
-							this.activeRuns.add(newRun);
-							State tempState = this.nfa.getStates(newState);
-							if(tempState.isBeforeNegation()){
-								r.setBeforeNegationTimestamp(e.getTimestamp());
-							}else if(tempState.isAfterNegation()){
-								r.setAfterNegationTimestamp(e.getTimestamp());
-							}
-						}else{//kleene closure
-							if(newRun.isFull){
-								//check match and output match
-								if(newRun.checkMatch()){
-									this.outputMatchForNegation(new Match(newRun, this.nfa, this.buffer,runDescriptor), newRun);
-									Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-															
-								}
-							}else{
-								//check proceed
-								if(this.checkProceed(newRun)){
-									Run newerRun = this.cloneRun(newRun);
-									this.activeRuns.add(newRun);
-									newerRun.proceed();
-									if(newerRun.isComplete()){
-										this.outputMatchForNegation(new Match(r, this.nfa, this.buffer,runDescriptor), r);
-										Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-										
-									}else {
-										this.activeRuns.add(newerRun);
-									}
-								}
-							}
-						}
-						
-					
-						
-					}else{
-						this.toDeleteRuns.add(r);
-					}
+			} else {
+				this.outputnNoNMatch(new Match(r, this.nfa, this.buffer,
+						runDescriptor), r.clonedId);
+				this.toDeleteRuns.add(r);
+			}
 
-				}
-	}
-	/**
-	 * This methods add a new run to a partition.
-	 * @param newRun The run to be added
-	 */
-		
-	public void addRunByPartition(Run newRun){
-		if(this.activeRunsByPartition.containsKey(newRun.getPartitonId())){
-			this.activeRunsByPartition.get(newRun.getPartitonId()).add(newRun);
-		}else{
-			ArrayList<Run> newPartition = new ArrayList<Run>();
-			newPartition.add(newRun);
-			this.activeRunsByPartition.put(newRun.getPartitonId(), newPartition);
 		}
 	}
-	
+
 	/**
-	 * This method evaluates an event against a run.
-	 * @param e The event which is being evaluated.
-	 * @param r The run which the event is being evaluated against.
+	 * This method evaluates an event against a run, for skip-till-next-match
+	 * 
+	 * @param e
+	 *            The event which is being evaluated.
+	 * @param r
+	 *            The run which the event is being evaluated against.
 	 * @throws CloneNotSupportedException
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-		
-		
-		public void evaluateEventForPartitonContiguity(Event e, Run r) throws CloneNotSupportedException, IOException{
-			boolean checkResult = true;
-			
-			
-			checkResult = this.checkPredicate(e, r);// check predicate
-				if(checkResult){ // the predicate if ok.
-					checkResult = this.checkTimeWindow(e, r); // the time window is ok
-					if(checkResult){// predicate and time window are ok
-						this.buffer.bufferEvent(e);// add the event to buffer
-						int oldState = 0;
-						int newState = 0;
-						oldState = r.getCurrentState();
-						r.addEvent(e);
-						newState = r.getCurrentState();
-						if(oldState == newState)//kleene closure
-							if(r.isFull){
-								//check match and output match
-								if(r.checkMatch()){
-									this.outputMatch(new Match(r, this.nfa, this.buffer,runDescriptor),r.runID);
-									Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-									this.toDeleteRuns.add(r);
-								}
-							}else{
-								//check proceed
-								if(this.checkProceed(r)){
-									Run newRun = this.cloneRun(r);
-									this.activeRuns.add(newRun);
-									this.addRunByPartition(newRun);
-									
-									r.proceed();
-									if(r.isComplete()){
-										this.outputMatch(new Match(r, this.nfa, this.buffer,runDescriptor), r.runID);
-										Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
-										this.toDeleteRuns.add(r);
-										
-									}
-								}
-							}
-						
-							
-						}else{
+	public void evaluateEventForSkipTillNext(Event e, Run r)
+			throws CloneNotSupportedException, IOException {
+		boolean checkResult = true;
+
+		checkResult = this.checkPredicate(e, r);// check predicate
+		if (checkResult) { // the predicate if ok.
+			checkResult = this.checkTimeWindow(e, r); // the time window is ok
+			if (checkResult) {// predicate and time window are ok
+
+				this.outputPartialMatch(new Match(r, this.nfa, this.buffer,
+						runDescriptor), r.runID);
+				this.buffer.bufferEvent(e);// add the event to buffer
+				int oldState = 0;
+				int newState = 0;
+
+				oldState = r.getCurrentState();
+				r.addEvent(e);
+				newState = r.getCurrentState();
+				if (oldState == newState)// kleene closure
+				{
+
+					if (r.isFull) {
+						// check match and output match
+						if (r.checkMatch()) {
+							// this.outputMatch(new Match(r, this.nfa,
+							// this.buffer, runDescriptor), r.runID);
+
+							this.outputMatch(new Match(r, this.nfa,
+									this.buffer, runDescriptor), r.runID);
+							Profiling.totalRunLifeTime += (System.nanoTime() - r
+									.getLifeTimeBegin());
 							this.toDeleteRuns.add(r);
 						}
+					} else {
+						// check proceed
+						this.outputPartialMatch(new Match(r, this.nfa,
+								this.buffer, runDescriptor), r.runID);
+						if (this.checkProceed(r)) {
+							Run newRun = this.cloneRun(r);
 
-					}else{
-						this.toDeleteRuns.add(r);
+							this.activeRuns.add(newRun);
+							this.outputPartialMatch(new Match(newRun, this.nfa,
+									this.buffer, runDescriptor), newRun.runID);
+							this.addRunByPartition(newRun);
+							r.proceed();
+							if (r.isComplete()) {
+								// this.outputMatch(new Match(r, this.nfa,
+								// this.buffer, runDescriptor), r.runID);
+								this.outputMatch(new Match(r, this.nfa,
+										this.buffer, runDescriptor), r.runID);
+								Profiling.totalRunLifeTime += (System
+										.nanoTime() - r.getLifeTimeBegin());
+								this.toDeleteRuns.add(r);
+
+							}
+						}
 					}
+				}
+
+			} else {
+				this.toDeleteRuns.add(r);
+			}
+
+		}
 	}
-	
+
+	/**
+	 * This method evaluates an event against a run, for queries with a negation
+	 * component.
+	 * 
+	 * @param e
+	 *            The event which is being evaluated.
+	 * @param r
+	 *            The run which the event is being evaluated against.
+	 * @throws CloneNotSupportedException
+	 */
+	public void evaluateEventForNegation(Event e, Run r)
+			throws CloneNotSupportedException {
+		boolean checkResult = true;
+
+		checkResult = this.checkPredicate(e, r);// check predicate
+		if (checkResult) { // the predicate if ok.
+			checkResult = this.checkTimeWindow(e, r); // the time window is ok
+			if (checkResult) {// predicate and time window are ok
+				this.buffer.bufferEvent(e);// add the event to buffer
+				int oldState = 0;
+				int newState = 0;
+
+				Run newRun = this.cloneRun(r); // clone this run
+
+				oldState = newRun.getCurrentState();
+				newRun.addEvent(e); // add the event to this run
+				newState = newRun.getCurrentState();
+				if (oldState != newState) {
+					this.activeRuns.add(newRun);
+					State tempState = this.nfa.getStates(newState);
+					if (tempState.isBeforeNegation()) {
+						r.setBeforeNegationTimestamp(e.getTimestamp());
+					} else if (tempState.isAfterNegation()) {
+						r.setAfterNegationTimestamp(e.getTimestamp());
+					}
+				} else {// kleene closure
+					if (newRun.isFull) {
+						// check match and output match
+						if (newRun.checkMatch()) {
+							this.outputMatchForNegation(new Match(newRun,
+									this.nfa, this.buffer, runDescriptor),
+									newRun);
+							Profiling.totalRunLifeTime += (System.nanoTime() - r
+									.getLifeTimeBegin());
+
+						}
+					} else {
+						// check proceed
+						if (this.checkProceed(newRun)) {
+							Run newerRun = this.cloneRun(newRun);
+							this.activeRuns.add(newRun);
+							newerRun.proceed();
+							if (newerRun.isComplete()) {
+								this.outputMatchForNegation(new Match(r,
+										this.nfa, this.buffer, runDescriptor),
+										r);
+								Profiling.totalRunLifeTime += (System
+										.nanoTime() - r.getLifeTimeBegin());
+
+							} else {
+								this.activeRuns.add(newerRun);
+							}
+						}
+					}
+				}
+
+			} else {
+				this.toDeleteRuns.add(r);
+			}
+
+		}
+	}
+
+	/**
+	 * This methods add a new run to a partition.
+	 * 
+	 * @param newRun
+	 *            The run to be added
+	 */
+
+	public void addRunByPartition(Run newRun) {
+		if (this.activeRunsByPartition.containsKey(newRun.getPartitonId())) {
+			this.activeRunsByPartition.get(newRun.getPartitonId()).add(newRun);
+		} else {
+			ArrayList<Run> newPartition = new ArrayList<Run>();
+			newPartition.add(newRun);
+			this.activeRunsByPartition
+					.put(newRun.getPartitonId(), newPartition);
+		}
+	}
+
+	/**
+	 * This method evaluates an event against a run.
+	 * 
+	 * @param e
+	 *            The event which is being evaluated.
+	 * @param r
+	 *            The run which the event is being evaluated against.
+	 * @throws CloneNotSupportedException
+	 * @throws IOException
+	 */
+
+	public void evaluateEventForPartitonContiguity(Event e, Run r)
+			throws CloneNotSupportedException, IOException {
+		boolean checkResult = true;
+
+		checkResult = this.checkPredicate(e, r);// check predicate
+		if (checkResult) { // the predicate if ok.
+			checkResult = this.checkTimeWindow(e, r); // the time window is ok
+			if (checkResult) {// predicate and time window are ok
+				this.buffer.bufferEvent(e);// add the event to buffer
+				int oldState = 0;
+				int newState = 0;
+				oldState = r.getCurrentState();
+				r.addEvent(e);
+				newState = r.getCurrentState();
+				if (oldState == newState)// kleene closure
+					if (r.isFull) {
+						// check match and output match
+						if (r.checkMatch()) {
+							this.outputMatch(new Match(r, this.nfa,
+									this.buffer, runDescriptor), r.runID);
+							Profiling.totalRunLifeTime += (System.nanoTime() - r
+									.getLifeTimeBegin());
+							this.toDeleteRuns.add(r);
+						}
+					} else {
+						// check proceed
+						if (this.checkProceed(r)) {
+							Run newRun = this.cloneRun(r);
+							this.activeRuns.add(newRun);
+							this.addRunByPartition(newRun);
+
+							r.proceed();
+							if (r.isComplete()) {
+								this.outputMatch(new Match(r, this.nfa,
+										this.buffer, runDescriptor), r.runID);
+								Profiling.totalRunLifeTime += (System
+										.nanoTime() - r.getLifeTimeBegin());
+								this.toDeleteRuns.add(r);
+
+							}
+						}
+					}
+
+			} else {
+				this.toDeleteRuns.add(r);
+			}
+
+		} else {
+			this.toDeleteRuns.add(r);
+		}
+	}
 
 	/**
 	 * This method adds an event to a run
-	 * @param r The event to be added
-	 * @param e The run to which the event is added
-	 * @throws IOException 
+	 * 
+	 * @param r
+	 *            The event to be added
+	 * @param e
+	 *            The run to which the event is added
+	 * @throws IOException
 	 */
-	public void addEventToRun(Run r, Event e) throws IOException{
+	public void addEventToRun(Run r, Event e) throws IOException {
 		this.buffer.bufferEvent(e);// add the event to buffer
 		int oldState = 0;
 		int newState = 0;
 		oldState = r.getCurrentState();
 		r.addEvent(e);
 		newState = r.getCurrentState();
-		if(oldState == newState)//kleene closure
-			if(r.isFull){
-				//check match and output match
-				if(r.checkMatch()){
-					this.outputMatch(new Match(r, this.nfa, this.buffer,runDescriptor),r.runID);
-					Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
+		if (oldState == newState)// kleene closure
+			if (r.isFull) {
+				// check match and output match
+				if (r.checkMatch()) {
+					this.outputMatch(new Match(r, this.nfa, this.buffer,
+							runDescriptor), r.runID);
+					Profiling.totalRunLifeTime += (System.nanoTime() - r
+							.getLifeTimeBegin());
 					this.toDeleteRuns.add(r);
 				}
 			}
-		
+
 	}
+
 	/**
-	 * This method adds an event to a run, for queries with a negation component.
-	 * @param r The event to be added
-	 * @param e The run to which the event is added
-	 * @throws IOException 
+	 * This method adds an event to a run, for queries with a negation
+	 * component.
+	 * 
+	 * @param r
+	 *            The event to be added
+	 * @param e
+	 *            The run to which the event is added
+	 * @throws IOException
 	 */
-	public void addEventToRunForNegation(Run r, Event e) throws IOException{
+	public void addEventToRunForNegation(Run r, Event e) throws IOException {
 		this.buffer.bufferEvent(e);// add the event to buffer
 		int oldState = 0;
 		int newState = 0;
@@ -881,127 +1028,145 @@ public class Engine {
 		r.addEvent(e);
 		newState = r.getCurrentState();
 		State tempState = this.nfa.getStates(newState);
-		
-		if(tempState.isBeforeNegation()){
+
+		if (tempState.isBeforeNegation()) {
 			r.setBeforeNegationTimestamp(e.getTimestamp());
-		}else if(tempState.isAfterNegation()){
+		} else if (tempState.isAfterNegation()) {
 			r.setAfterNegationTimestamp(e.getTimestamp());
 		}
-		if(oldState == newState)//kleene closure
-			if(r.isFull){
-				//check match and output match
-				if(r.checkMatch()){
-					this.outputMatchByPartitionForNegation(new Match(r, this.nfa, this.buffer,runDescriptor), r);
-					Profiling.totalRunLifeTime += (System.nanoTime() - r.getLifeTimeBegin());
+		if (oldState == newState)// kleene closure
+			if (r.isFull) {
+				// check match and output match
+				if (r.checkMatch()) {
+					this.outputMatchByPartitionForNegation(new Match(r,
+							this.nfa, this.buffer, runDescriptor), r);
+					Profiling.totalRunLifeTime += (System.nanoTime() - r
+							.getLifeTimeBegin());
 					this.toDeleteRuns.add(r);
 				}
 			}
-		
+
 	}
+
 	/**
 	 * Creates a new run containing the input event.
-	 * @param e The current event.
+	 * 
+	 * @param e
+	 *            The current event.
 	 * @throws EvaluationException
 	 */
-	
-	public void createNewRun(Event e) throws EvaluationException{
-		if(this.nfa.getStates()[0].canStartWithEvent(e)){
+
+	public void createNewRun(Event e) throws EvaluationException {
+		if (this.nfa.getStates()[0].canStartWithEvent(e)) {
 			this.buffer.bufferEvent(e);
 			Run newRun = this.engineRunController.getRun();
+			// newRun.runID++;
 			newRun.initializeRun(this.nfa);
 			newRun.addEvent(e);
-			//this.numberOfRuns.update(1);
-			Profiling.numberOfRuns ++;
-			
-		//TODO
+			// this.numberOfRuns.update(1);
+			Profiling.numberOfRuns++;
+
+			// TODO
 			this.activeRuns.add(newRun);
-			
+
 		}
 	}
+
 	/**
-	 * Creates a new run containing the input event and adds the new run to the corresponding partition
-	 * @param e The current event
+	 * Creates a new run containing the input event and adds the new run to the
+	 * corresponding partition
+	 * 
+	 * @param e
+	 *            The current event
 	 * @throws EvaluationException
 	 * @throws CloneNotSupportedException
 	 */
-	public void createNewRunByPartition(Event e) throws EvaluationException, CloneNotSupportedException{
-		if(this.nfa.getStates()[0].canStartWithEvent(e)){
+	public void createNewRunByPartition(Event e) throws EvaluationException,
+			CloneNotSupportedException {
+		if (this.nfa.getStates()[0].canStartWithEvent(e)) {
 			this.buffer.bufferEvent(e);
 			Run newRun = this.engineRunController.getRun();
 			newRun.initializeRun(this.nfa);
 			newRun.addEvent(e);
-			//this.numberOfRuns.update(1);
-			Profiling.numberOfRuns ++;
+			// this.numberOfRuns.update(1);
+			Profiling.numberOfRuns++;
 			this.activeRuns.add(newRun);
 			this.addRunByPartition(newRun);
 
 		}
 	}
+
 	/**
 	 * Checks the predicate for e against r
-	 * @param e The current event
-	 * @param r The run against which e is evaluated 
+	 * 
+	 * @param e
+	 *            The current event
+	 * @param r
+	 *            The run against which e is evaluated
 	 * @return The check result, 0 for false, 1 for take or begin, 2 for proceed
 	 */
-	public int checkPredicateOptimized(Event e, Run r){//0 for false, 1 for take or begin, 2 for proceed
+	public int checkPredicateOptimized(Event e, Run r) {// 0 for false, 1 for
+														// take or begin, 2 for
+														// proceed
 		int currentState = r.getCurrentState();
 		State s = this.nfa.getStates(currentState);
-		if(!s.getEventType().equalsIgnoreCase(e.getEventType())){// event type check;
+		if (!s.getEventType().equalsIgnoreCase(e.getEventType())) {// event type
+																	// check;
 			return 0;
 		}
 
-		if(!s.isKleeneClosure()){
+		if (!s.isKleeneClosure()) {
 			Edge beginEdge = s.getEdges(0);
 			boolean result;
-			//result = firstEdge.evaluatePredicate(e, r, buffer);
+			// result = firstEdge.evaluatePredicate(e, r, buffer);
 			result = beginEdge.evaluatePredicate(e, r, buffer);//
-			if(result){
+			if (result) {
 				return 1;
 			}
-		}else{
-			if(r.isKleeneClosureInitialized()){
+		} else {
+			if (r.isKleeneClosureInitialized()) {
 				boolean result;
-				result = this.checkProceedOptimized(e, r);//proceedEdge.evaluatePredicate(e, r, buffer);
-				if(result){
+				result = this.checkProceedOptimized(e, r);// proceedEdge.evaluatePredicate(e,
+															// r, buffer);
+				if (result) {
 					return 2;
-				}else{
-				
-				
-				
-				
-				Edge takeEdge = s.getEdges(1);
-				result = takeEdge.evaluatePredicate(e, r, buffer);
-				if(result){
-					return 1;
+				} else {
+
+					Edge takeEdge = s.getEdges(1);
+					result = takeEdge.evaluatePredicate(e, r, buffer);
+					if (result) {
+						return 1;
+					}
 				}
-				}
-			}else{
+			} else {
 				Edge beginEdge = s.getEdges(0);
 				boolean result;
-				
+
 				result = beginEdge.evaluatePredicate(e, r, buffer);//
-				if(result){
+				if (result) {
 					return 1;
 				}
 			}
 		}
-		
 
-		
-		return 0;	
-		
-		
+		return 0;
+
 	}
+
 	/**
 	 * Checks whether the run needs to proceed if we add e to r
-	 * @param e The current event
-	 * @param r The run against which e is evaluated
+	 * 
+	 * @param e
+	 *            The current event
+	 * @param r
+	 *            The run against which e is evaluated
 	 * @return The checking result, TRUE for OK to proceed
 	 */
-	public boolean checkProceedOptimized(Event e, Run r){
+	public boolean checkProceedOptimized(Event e, Run r) {
 		int currentState = r.getCurrentState();
 		State s = this.nfa.getStates(currentState + 1);
-		if(!s.getEventType().equalsIgnoreCase(e.getEventType())){// event type check;
+		if (!s.getEventType().equalsIgnoreCase(e.getEventType())) {// event type
+																	// check;
 			return false;
 		}
 		Edge beginEdge = s.getEdges(0);
@@ -1009,343 +1174,384 @@ public class Engine {
 		result = beginEdge.evaluatePredicate(e, r, buffer);
 		return result;
 	}
-/**
- * Checks whether the event satisfies the predicates of a run
- * @param e the current event
- * @param r the current run
- * @return the check result
- */
-	
-	public boolean checkPredicate(Event e, Run r){
+
+	/**
+	 * Checks whether the event satisfies the predicates of a run
+	 * 
+	 * @param e
+	 *            the current event
+	 * @param r
+	 *            the current run
+	 * @return the check result
+	 */
+
+	public boolean checkPredicate(Event e, Run r) {
 		int currentState = r.getCurrentState();
 		State s = this.nfa.getStates(currentState);
-		if(!s.getEventType().equalsIgnoreCase(e.getEventType())){// event type check;
+		if (!s.getEventType().equalsIgnoreCase(e.getEventType())) {// event type
+																	// check;
 			return false;
 		}
 
-		if(!s.isKleeneClosure()){
+		if (!s.isKleeneClosure()) {
 			Edge beginEdge = s.getEdges(0);
 			boolean result;
-			//result = firstEdge.evaluatePredicate(e, r, buffer);
+			// result = firstEdge.evaluatePredicate(e, r, buffer);
 			result = beginEdge.evaluatePredicate(e, r, buffer);//
-			if(result){
+			if (result) {
 				return true;
 			}
-		}else{
-			if(r.isKleeneClosureInitialized()){
+		} else {
+			if (r.isKleeneClosureInitialized()) {
 				Edge takeEdge = s.getEdges(1);
 				boolean result;
 				result = takeEdge.evaluatePredicate(e, r, buffer);
-				if(result){
+				if (result) {
 					return true;
 				}
-			}else{
+			} else {
 				Edge beginEdge = s.getEdges(0);
 				boolean result;
-				
+
 				result = beginEdge.evaluatePredicate(e, r, buffer);//
-				if(result){
+				if (result) {
 					return true;
 				}
 			}
 		}
-		
 
-		
-		return false;	
-		
-		
+		return false;
+
 	}
+
 	/**
-	 * Checks whether the event satisfies the partition of a run, only used under partition-contiguity selection strategy
-	 * @param e the current event
-	 * @param r the current run
+	 * Checks whether the event satisfies the partition of a run, only used
+	 * under partition-contiguity selection strategy
+	 * 
+	 * @param e
+	 *            the current event
+	 * @param r
+	 *            the current run
 	 * @return the check result, boolean format
 	 */
-	public boolean checkPartition(Event e, Run r){
-		
-		if(r.getPartitonId() == e.getAttributeByName(this.nfa.getPartitionAttribute())){
+	public boolean checkPartition(Event e, Run r) {
+
+		if (r.getPartitonId() == e.getAttributeByName(this.nfa
+				.getPartitionAttribute())) {
 			return true;
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Checks whether a kleene closure state can proceed to the next state
-	 * @param r the current run
+	 * 
+	 * @param r
+	 *            the current run
 	 * @return the check result, boolean format
 	 */
-	
-	
-	public boolean checkProceed(Run r){// cannot use previous, only use position?
+
+	public boolean checkProceed(Run r) {// cannot use previous, only use
+										// position?
 		int currentState = r.getCurrentState();
-			
+
 		Event previousEvent = this.buffer.getEvent(r.getPreviousEventId());
 		State s = this.nfa.getStates(currentState);
 
-
-		
 		Edge proceedEdge = s.getEdges(2);
 		boolean result;
 		result = proceedEdge.evaluatePredicate(previousEvent, r, buffer);//
-		if(result){
+		if (result) {
 			return true;
 		}
-		
-		return false;	
-		
+
+		return false;
+
 	}
-	
-	public boolean checkNegation(Event e) throws EvaluationException{
-		if(this.nfa.getNegationState().canStartWithEvent(e)){
+
+	public boolean checkNegation(Event e) throws EvaluationException {
+		if (this.nfa.getNegationState().canStartWithEvent(e)) {
 			return true;
 		}
 		return false;
 	}
 
-	public void indexNegationByPartition(Event e){
+	public void indexNegationByPartition(Event e) {
 		int id = e.getAttributeByName(this.nfa.getPartitionAttribute());
-		if(this.negationEventsByPartition.containsKey(id)){
+		if (this.negationEventsByPartition.containsKey(id)) {
 			this.negationEventsByPartition.get(id).add(e);
-		}else{
+		} else {
 			ArrayList<Event> newPartition = new ArrayList<Event>();
 			newPartition.add(e);
 			this.negationEventsByPartition.put(id, newPartition);
 		}
-		
+
 	}
-	public boolean searchNegation(int beforeTimestamp, int afterTimestamp, ArrayList<Event> list){
+
+	public boolean searchNegation(int beforeTimestamp, int afterTimestamp,
+			ArrayList<Event> list) {
 		// basic idea is to use binary search on the timestamp
 		int size = list.size();
 		int lower = 0;
 		int upper = size - 1;
 		Event tempE;
-		while(lower <= upper){
-			tempE = list.get((lower + upper)/2);
-			if(tempE.getTimestamp() >= beforeTimestamp && tempE.getTimestamp() <= afterTimestamp){
+		while (lower <= upper) {
+			tempE = list.get((lower + upper) / 2);
+			if (tempE.getTimestamp() >= beforeTimestamp
+					&& tempE.getTimestamp() <= afterTimestamp) {
 				return true;
 			}
-			if(tempE.getTimestamp() < beforeTimestamp){
-				lower = (lower + upper)/2;
-			}else {
-				upper = (lower + upper)/2;
+			if (tempE.getTimestamp() < beforeTimestamp) {
+				lower = (lower + upper) / 2;
+			} else {
+				upper = (lower + upper) / 2;
 			}
-			
+
 		}
 		return false;
 	}
-	public boolean searchNegationByPartition(int beforeTimestamp, int afterTimestamp, int partitionId){
-		if(this.negationEventsByPartition.containsKey(partitionId)){
-			ArrayList<Event> tempList = this.negationEventsByPartition.get(partitionId);
-			return this.searchNegation(beforeTimestamp, afterTimestamp, tempList);
-			
+
+	public boolean searchNegationByPartition(int beforeTimestamp,
+			int afterTimestamp, int partitionId) {
+		if (this.negationEventsByPartition.containsKey(partitionId)) {
+			ArrayList<Event> tempList = this.negationEventsByPartition
+					.get(partitionId);
+			return this.searchNegation(beforeTimestamp, afterTimestamp,
+					tempList);
+
 		}
 		return false;
 	}
-	
-/**
- * Clones a run
- * @param r the run to be cloned
- * @return the new run cloned from the input run.
- * @throws CloneNotSupportedException
- */
-	
-	public Run cloneRun(Run r) throws CloneNotSupportedException{
+
+	/**
+	 * Clones a run
+	 * 
+	 * @param r
+	 *            the run to be cloned
+	 * @return the new run cloned from the input run.
+	 * @throws CloneNotSupportedException
+	 */
+
+	public Run cloneRun(Run r) throws CloneNotSupportedException {
 		Run newRun = this.engineRunController.getRun();
-		newRun = (Run)r.clone();
-		Profiling.numberOfRuns ++;
+		newRun = (Run) r.clone();
+		Profiling.numberOfRuns++;
 		return newRun;
 	}
-	
-/**
- * Checks whether the event satisfies the time window constraint of a run
- * @param e the current event
- * @param r the current run
- * @return the check result
- */
 
-	public boolean checkTimeWindow(Event e, Run r){
-		if((e.getTimestamp() - r.getStartTimeStamp()) <= this.nfa.getTimeWindow()){
+	/**
+	 * Checks whether the event satisfies the time window constraint of a run
+	 * 
+	 * @param e
+	 *            the current event
+	 * @param r
+	 *            the current run
+	 * @return the check result
+	 */
+
+	public boolean checkTimeWindow(Event e, Run r) {
+		if ((e.getTimestamp() - r.getStartTimeStamp()) <= this.nfa
+				.getTimeWindow()) {
 			return true;
 		}
 		return false;
 	}
 
-	
+	/**
+	 * Outputs a match, and profiles.
+	 * 
+	 * @param m
+	 *            the match to be output
+	 * @throws IOException
+	 */
 
-/**
- * Outputs a match, and profiles.	
- * @param m the match to be output
- * @throws IOException 
- */
+	public void outputMatch(Match m, int runId) throws IOException {
 
-	
+		System.out.println("Runs " + runId);
 
-	public void outputMatch(Match m, int runId) throws IOException{
 		String FILENAME = "Results/outputmatch.txt";
 		FileWriter fw = new FileWriter(FILENAME, true);
 		BufferedWriter bw = new BufferedWriter(fw);
-		Profiling.numberOfMatches ++;
-		//this.matches.addMatch(m);
-		if(ConfigFlags.printResults){
-			System.out.println("----------Here is the No." + Profiling.numberOfMatches +" match----------");
-			if(Profiling.numberOfMatches == 878){
+		Profiling.numberOfMatches++;
+		// this.matches.addMatch(m);
+		if (ConfigFlags.printResults) {
+			System.out.println("----------Here is the No."
+					+ Profiling.numberOfMatches + " match----------");
+			if (Profiling.numberOfMatches == 878) {
 				System.out.println("debug");
 			}
 			System.out.println(m.toString());
-			//System.out.println(Profiling.numberOfEvents);
+			// System.out.println(Profiling.numberOfEvents);
 			bw.write(m.toStringMatch(runId));
 			bw.close();
 		}
-			
-	}
-	
 
-	public void outputPartialMatch(Match m, int runId) throws IOException{
+	}
+
+	public void outputPartialMatch(Match m, int runId) throws IOException {
 		String FILENAME = "Results/outputpartialmatch.txt";
 		FileWriter fw = new FileWriter(FILENAME, true);
 		BufferedWriter bw = new BufferedWriter(fw);
-		if(ConfigFlags.printResults){
+		if (ConfigFlags.printResults) {
 			bw.write(m.toStringPMatch(runId));
 			bw.close();
 		}
-			
+
 	}
-	
-	public void outputnNoNMatch(Match m, int runId) throws IOException{
+
+	public void outputnNoNMatch(Match m, int runId) throws IOException {
 		String FILENAME = "Results/outputnotmatch.txt";
 		FileWriter fw = new FileWriter(FILENAME, true);
 		BufferedWriter bw = new BufferedWriter(fw);
 
-		if(ConfigFlags.printResults){
+		if (ConfigFlags.printResults) {
 			bw.write(m.toStringNoNMatch(runId));
 			bw.close();
 		}
-		
-	}
-	
-	
-	
-	/**
-	 * Outputs a match, and profiles, for queries with a negation componengt, without a partition attribute.	
-	 * @param m the match to be output
-	 */
-	public void outputMatchForNegation(Match m, Run r){
-		if(this.searchNegation(r.getBeforeNegationTimestamp(), r.getAfterNegationTimestamp(), this.negationEvents)){
-			Profiling.negatedMatches ++;
-			System.out.println("~~~~~~~~~~~~~~~~Here is a negated match~~~~~~~~~~~~~~~");
-			System.out.println(m);
-		}else{
-		
-		Profiling.numberOfMatches ++;
-		//this.matches.addMatch(m);
-		if(ConfigFlags.printResults){
-		System.out.println("----------Here is the No." + Profiling.numberOfMatches +" match----------");
-		if(Profiling.numberOfMatches == 878){
-			System.out.println("debug");
-		}
-		System.out.println(m);
-		}
-		
-		}
-		
-	}
-	/**
-	 * Outputs a match, and profiles, for queries with a negation componengt, with a partition attribute.	
-	 * @param m the match to be output
-	 * @throws IOException 
-	 */
-	public void outputMatchByPartitionForNegation(Match m, Run r) throws IOException{
-		
-	
-		if(this.searchNegationByPartition(r.getBeforeNegationTimestamp(), r.getAfterNegationTimestamp(), r.getPartitonId())){
-			Profiling.negatedMatches ++;
-			System.out.println("~~~~~~~~~~~~~~~~Here is a negated match~~~~~~~~~~~~~~~");
-			System.out.println(m);
-		}else{
-		
-		Profiling.numberOfMatches ++;
-		//this.matches.addMatch(m);
-		if(ConfigFlags.printResults){
-		System.out.println("----------Here is the No." + Profiling.numberOfMatches +" match----------");
-		if(Profiling.numberOfMatches == 878){
-			System.out.println("debug");
-		}
-		System.out.println(m);
 
-		
-		}
-		
-		}
-		
 	}
-/**
- * Deletes runs violating the time window
- * @param currentTime current time
- * @param timeWindow time window of the query
- * @param delayTime specified delay period, any run which has been past the time window by this value would be deleted.
- * @throws IOException 
- */
 
-	public void deleteRunsOverTimeWindow(int currentTime, int timeWindow, int delayTime) throws IOException{
+	/**
+	 * Outputs a match, and profiles, for queries with a negation componengt,
+	 * without a partition attribute.
+	 * 
+	 * @param m
+	 *            the match to be output
+	 */
+	public void outputMatchForNegation(Match m, Run r) {
+		if (this.searchNegation(r.getBeforeNegationTimestamp(),
+				r.getAfterNegationTimestamp(), this.negationEvents)) {
+			Profiling.negatedMatches++;
+			System.out
+					.println("~~~~~~~~~~~~~~~~Here is a negated match~~~~~~~~~~~~~~~");
+			System.out.println(m);
+		} else {
+
+			Profiling.numberOfMatches++;
+			// this.matches.addMatch(m);
+			if (ConfigFlags.printResults) {
+				System.out.println("----------Here is the No."
+						+ Profiling.numberOfMatches + " match----------");
+				if (Profiling.numberOfMatches == 878) {
+					System.out.println("debug");
+				}
+				System.out.println(m);
+			}
+
+		}
+
+	}
+
+	/**
+	 * Outputs a match, and profiles, for queries with a negation componengt,
+	 * with a partition attribute.
+	 * 
+	 * @param m
+	 *            the match to be output
+	 * @throws IOException
+	 */
+	public void outputMatchByPartitionForNegation(Match m, Run r)
+			throws IOException {
+
+		if (this.searchNegationByPartition(r.getBeforeNegationTimestamp(),
+				r.getAfterNegationTimestamp(), r.getPartitonId())) {
+			Profiling.negatedMatches++;
+			System.out
+					.println("~~~~~~~~~~~~~~~~Here is a negated match~~~~~~~~~~~~~~~");
+			System.out.println(m);
+		} else {
+
+			Profiling.numberOfMatches++;
+			// this.matches.addMatch(m);
+			if (ConfigFlags.printResults) {
+				System.out.println("----------Here is the No."
+						+ Profiling.numberOfMatches + " match----------");
+				if (Profiling.numberOfMatches == 878) {
+					System.out.println("debug");
+				}
+				System.out.println(m);
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Deletes runs violating the time window
+	 * 
+	 * @param currentTime
+	 *            current time
+	 * @param timeWindow
+	 *            time window of the query
+	 * @param delayTime
+	 *            specified delay period, any run which has been past the time
+	 *            window by this value would be deleted.
+	 * @throws IOException
+	 */
+
+	public void deleteRunsOverTimeWindow(int currentTime, int timeWindow,
+			int delayTime) throws IOException {
 		int size = this.activeRuns.size();
 		Run tempRun = null;
-		for(int i = 0; i < size; i ++){
+		for (int i = 0; i < size; i++) {
 			tempRun = this.activeRuns.get(i);
-			if(!tempRun.isFull&&tempRun.getStartTimeStamp() + timeWindow + delayTime < currentTime){
+			if (!tempRun.isFull
+					&& tempRun.getStartTimeStamp() + timeWindow + delayTime < currentTime) {
 				this.toDeleteRuns.add(tempRun);
-			//	outputnNoNMatch((new Match(tempRun, this.nfa, this.buffer,runDescriptor)));
-				Profiling.numberOfRunsOverTimeWindow ++;
-				
+				// outputnNoNMatch((new Match(tempRun, this.nfa,
+				// this.buffer,runDescriptor)));
+				Profiling.numberOfRunsOverTimeWindow++;
+
 			}
 		}
 	}
-	
+
 	/**
 	 * Cleans useless runs
 	 */
-	public void cleanRuns(){
+	public void cleanRuns() {
 
 		int size = this.toDeleteRuns.size();
 		Run tempRun = null;
-		for(int i = 0; i < size; i ++){
+		for (int i = 0; i < size; i++) {
 			tempRun = toDeleteRuns.get(0);
-			Profiling.totalRunLifeTime += (System.nanoTime() - tempRun.getLifeTimeBegin());
+			Profiling.totalRunLifeTime += (System.nanoTime() - tempRun
+					.getLifeTimeBegin());
 			tempRun.resetRun();
 			this.activeRuns.remove(tempRun);
 			this.toDeleteRuns.remove(0);
-			Profiling.numberOfRunsCutted ++;
+			Profiling.numberOfRunsCutted++;
 		}
-		
 
 	}
-	
+
 	/**
 	 * Cleans useless runs by partition.
 	 */
-	public void cleanRunsByPartition(){
+	public void cleanRunsByPartition() {
 
 		int size = this.toDeleteRuns.size();
 		Run tempRun = null;
 		ArrayList<Run> partitionedRuns = null;
-		for(int i = 0; i < size; i ++){
+		for (int i = 0; i < size; i++) {
 			tempRun = toDeleteRuns.get(0);
-			Profiling.totalRunLifeTime += (System.nanoTime() - tempRun.getLifeTimeBegin());
+			Profiling.totalRunLifeTime += (System.nanoTime() - tempRun
+					.getLifeTimeBegin());
 			tempRun.resetRun();
 			this.activeRuns.remove(tempRun);
 			this.toDeleteRuns.remove(0);
-			Profiling.numberOfRunsCutted ++;
-			partitionedRuns = this.activeRunsByPartition.get(tempRun.getPartitonId());
+			Profiling.numberOfRunsCutted++;
+			partitionedRuns = this.activeRunsByPartition.get(tempRun
+					.getPartitonId());
 			partitionedRuns.remove(tempRun);
-			if(partitionedRuns.size() == 0){
+			if (partitionedRuns.size() == 0) {
 				this.activeRunsByPartition.remove(partitionedRuns);
 			}
-			
+
 		}
-		
 
 	}
-
 
 	/**
 	 * @return the input
@@ -1355,7 +1561,8 @@ public class Engine {
 	}
 
 	/**
-	 * @param input the input to set
+	 * @param input
+	 *            the input to set
 	 */
 	public void setInput(Stream input) {
 		this.input = input;
@@ -1369,7 +1576,8 @@ public class Engine {
 	}
 
 	/**
-	 * @param buffer the buffer to set
+	 * @param buffer
+	 *            the buffer to set
 	 */
 	public void setBuffer(EventBuffer buffer) {
 		this.buffer = buffer;
@@ -1383,7 +1591,8 @@ public class Engine {
 	}
 
 	/**
-	 * @param nfa the nfa to set
+	 * @param nfa
+	 *            the nfa to set
 	 */
 	public void setNfa(NFA nfa) {
 		this.nfa = nfa;
@@ -1397,12 +1606,12 @@ public class Engine {
 	}
 
 	/**
-	 * @param engineRunController the engineRunController to set
+	 * @param engineRunController
+	 *            the engineRunController to set
 	 */
 	public void setEngineRunController(RunPool engineRunController) {
 		this.engineRunController = engineRunController;
 	}
-
 
 	/**
 	 * @return the activeRuns
@@ -1412,7 +1621,8 @@ public class Engine {
 	}
 
 	/**
-	 * @param activeRuns the activeRuns to set
+	 * @param activeRuns
+	 *            the activeRuns to set
 	 */
 	public void setActiveRuns(ArrayList<Run> activeRuns) {
 		this.activeRuns = activeRuns;
@@ -1426,12 +1636,12 @@ public class Engine {
 	}
 
 	/**
-	 * @param matches the matches to set
+	 * @param matches
+	 *            the matches to set
 	 */
 	public void setMatches(MatchController matches) {
 		this.matches = matches;
 	}
-
 
 	/**
 	 * @return the toDeleteRuns
@@ -1441,71 +1651,83 @@ public class Engine {
 	}
 
 	/**
-	 * @param toDeleteRuns the toDeleteRuns to set
+	 * @param toDeleteRuns
+	 *            the toDeleteRuns to set
 	 */
 	public void setToDeleteRuns(ArrayList<Run> toDeleteRuns) {
 		this.toDeleteRuns = toDeleteRuns;
 	}
+
 	/**
 	 * @return the activeRunsByPartiton
 	 */
 	public HashMap<Integer, ArrayList<Run>> getActiveRunsByPartiton() {
 		return activeRunsByPartition;
 	}
+
 	/**
-	 * @param activeRunsByPartiton the activeRunsByPartiton to set
+	 * @param activeRunsByPartiton
+	 *            the activeRunsByPartiton to set
 	 */
 	public void setActiveRunsByPartiton(
 			HashMap<Integer, ArrayList<Run>> activeRunsByPartiton) {
 		this.activeRunsByPartition = activeRunsByPartiton;
 	}
+
 	/**
 	 * @return the activeRunsByPartition
 	 */
 	public HashMap<Integer, ArrayList<Run>> getActiveRunsByPartition() {
 		return activeRunsByPartition;
 	}
+
 	/**
-	 * @param activeRunsByPartition the activeRunsByPartition to set
+	 * @param activeRunsByPartition
+	 *            the activeRunsByPartition to set
 	 */
 	public void setActiveRunsByPartition(
 			HashMap<Integer, ArrayList<Run>> activeRunsByPartition) {
 		this.activeRunsByPartition = activeRunsByPartition;
 	}
+
 	/**
 	 * @return the negationEvents
 	 */
 	public ArrayList<Event> getNegationEvents() {
 		return negationEvents;
 	}
+
 	/**
-	 * @param negationEvents the negationEvents to set
+	 * @param negationEvents
+	 *            the negationEvents to set
 	 */
 	public void setNegationEvents(ArrayList<Event> negationEvents) {
 		this.negationEvents = negationEvents;
 	}
+
 	/**
 	 * @return the negationEventsByPartition
 	 */
 	public HashMap<Integer, ArrayList<Event>> getNegationEventsByPartition() {
 		return negationEventsByPartition;
 	}
+
 	/**
-	 * @param negationEventsByPartition the negationEventsByPartition to set
+	 * @param negationEventsByPartition
+	 *            the negationEventsByPartition to set
 	 */
 	public void setNegationEventsByPartition(
 			HashMap<Integer, ArrayList<Event>> negationEventsByPartition) {
 		this.negationEventsByPartition = negationEventsByPartition;
 	}
+
 	public MatchedRunDescriptor getRunDescriptor() {
 		return runDescriptor;
 	}
+
 	public void setRunDescriptor(MatchedRunDescriptor runDescriptor) {
 		this.runDescriptor = runDescriptor;
 
 	}
-	
-	
-
 
 }

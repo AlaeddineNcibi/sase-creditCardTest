@@ -1,5 +1,5 @@
 PATTERN SEQ(creditCard a, creditCard b, creditCard c)
-WHERE skip-till-any-match 
+WHERE skip-till-next-match 
 AND b.mount > a.mount
 AND c.mount > b.mount
 WITHIN 500000

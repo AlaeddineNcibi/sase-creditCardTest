@@ -9,7 +9,8 @@ public class CreditCardEvent implements Event {
 	int ltion;
 	double mount;
 
-	public CreditCardEvent(int id, int timestamp, String cardId, double amount, int location) {
+	public CreditCardEvent(int id, int timestamp, String cardId, double amount,
+			int location) {
 		super();
 		this.id = id;
 		this.timestamp = timestamp;
@@ -18,7 +19,8 @@ public class CreditCardEvent implements Event {
 		this.ltion = location;
 	}
 
-	public CreditCardEvent(int id, int timestamp, String eventType, String cardId, double amount, int location) {
+	public CreditCardEvent(int id, int timestamp, String eventType,
+			String cardId, double amount, int location) {
 		super();
 		this.id = id;
 		this.timestamp = timestamp;
@@ -37,6 +39,8 @@ public class CreditCardEvent implements Event {
 			return this.timestamp;
 		if (attributeName.equalsIgnoreCase("ltion"))
 			return this.ltion;
+		if (attributeName.equalsIgnoreCase("mount"))
+			return (int) this.mount;
 
 		return 0;
 	}
@@ -116,8 +120,9 @@ public class CreditCardEvent implements Event {
 
 	@Override
 	public String toString() {
-		return "CreditCardEvent [id=" + id + ", timestamp=" + timestamp + ", eventType=" + eventType + ", cardId="
-				+ crdId + ", amount=" + mount + ", location=" + ltion + "]";
+		return "CreditCardEvent [id=" + id + ", timestamp=" + timestamp
+				+ ", eventType=" + eventType + ", cardId=" + crdId
+				+ ", amount=" + mount + ", location=" + ltion + "]";
 	}
 
 }
