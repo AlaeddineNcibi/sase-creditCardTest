@@ -145,7 +145,7 @@ public class Engine {
 	 */
 
 	public void runEngine() throws CloneNotSupportedException,
-			EvaluationException, IOException {
+		EvaluationException, IOException {
 		ConfigFlags.timeWindow = this.nfa.getTimeWindow();
 		ConfigFlags.sequenceLength = this.nfa.getSize();
 		ConfigFlags.selectionStrategy = this.nfa.getSelectionStrategy();
@@ -1369,9 +1369,9 @@ public class Engine {
 
 		System.out.println("Runs " + runId);
 
-		String FILENAME = "Results/outputmatch.txt";
-		FileWriter fw = new FileWriter(FILENAME, true);
-		BufferedWriter bw = new BufferedWriter(fw);
+		//String FILENAME = "Results/outputmatch.txt";
+		//FileWriter fw = new FileWriter(FILENAME, true);
+		//BufferedWriter bw = new BufferedWriter(fw);
 		Profiling.numberOfMatches++;
 		// this.matches.addMatch(m);
 		if (ConfigFlags.printResults) {
@@ -1382,38 +1382,38 @@ public class Engine {
 			}
 			System.out.println(m.toString());
 			// System.out.println(Profiling.numberOfEvents);
-			bw.write(m.toStringMatch(runId));
-			bw.close();
+			Globals.bw1.write(m.toStringMatch(runId));
+			//bw.close();
 		}
 
 	}
 
 	public void outputPartialMatch(Match m, int runId) throws IOException {
-		String FILENAME1 = "Results/outputmatch.txt";
-		FileWriter fw1 = new FileWriter(FILENAME1, true);
-		BufferedWriter bw1 = new BufferedWriter(fw1);
+		//String FILENAME1 = "Results/outputmatch.txt";
+		//FileWriter fw1 = new FileWriter(FILENAME1, true);
+		//BufferedWriter bw1 = new BufferedWriter(fw1);
 		
-		String FILENAME = "Results/outputpartialmatch.txt";
-		FileWriter fw = new FileWriter(FILENAME, true);
-		BufferedWriter bw = new BufferedWriter(fw);
+		//String FILENAME = "Results/outputpartialmatch.txt";
+		//FileWriter fw = new FileWriter(FILENAME, true);
+		//BufferedWriter bw = new BufferedWriter(fw);
 		if (ConfigFlags.printResults) {
-			bw.write(m.toStringPMatch(runId));
-			bw.close();
+			Globals.bw1.write(m.toStringPMatch(runId));
+			//bw.close();
 			
-			bw1.write(m.toStringPMatch(runId));
-			bw1.close();
+			Globals.bw2.write(m.toStringPMatch(runId));
+			//bw.close();
 		}
 
 	}
 
 	public void outputnNoNMatch(Match m, int runId) throws IOException {
-		String FILENAME = "Results/outputnotmatch.txt";
-		FileWriter fw = new FileWriter(FILENAME, true);
-		BufferedWriter bw = new BufferedWriter(fw);
+		//String FILENAME = "Results/outputnotmatch.txt";
+		//FileWriter fw = new FileWriter(FILENAME, true);
+		//BufferedWriter bw = new BufferedWriter(fw);
 
 		if (ConfigFlags.printResults) {
-			bw.write(m.toStringNoNMatch(runId));
-			bw.close();
+			Globals.bw3.write(m.toStringNoNMatch(runId));
+			//bw.close();
 		}
 
 	}

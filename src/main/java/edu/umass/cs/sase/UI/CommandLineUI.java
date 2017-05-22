@@ -24,11 +24,13 @@
  */
 package edu.umass.cs.sase.UI;
 
+import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
 import net.sourceforge.jeval.EvaluationException;
 import edu.umass.cs.sase.engine.EngineController;
+import edu.umass.cs.sase.engine.Globals;
 import edu.umass.cs.sase.engine.Profiling;
 import edu.umass.cs.sase.stream.StockStreamConfig;
 import edu.umass.cs.sase.stream.StreamController;
@@ -49,30 +51,28 @@ public class CommandLineUI {
 	 *            use sharing techniques or not, ("sharingengine" for use,
 	 *            nothing for not use)
 	 */
+	
+	
 	public static void main(String args[]) throws CloneNotSupportedException,
-			EvaluationException, IOException {
+		EvaluationException, IOException {
 		// String nfaFileLocation = "src/main/resources/activity.query";
 		String nfaFileLocation = "src/main/resources/creditCard.query";
 		// String nfaFileLocation =
 		// "src/main/resources/transactionsFarAwayPlaces.query";
-		// Delete the content of the outputmatch file
-		String FILENAME = "Results/outputmatch.txt";
-		FileWriter fw = new FileWriter(FILENAME, false);
-		fw.write("Form of the results: \nFM(Final match),RunID, first_event,second_event,third-event \n");
-		fw.write("an event: amount:location \n");
-		fw.close();
+		
+		Globals.fw1 = new FileWriter(Globals.FILENAME1, false);
+		Globals.fw1.write("");
+		Globals.bw1 = new BufferedWriter(Globals.fw1);
+		
+		Globals.fw2 = new FileWriter(Globals.FILENAME2, false);
+		Globals.fw2.write("");
+		Globals.bw2 = new BufferedWriter(Globals.fw2);
 
-		// Delete the content of the outputpartialmatch file
-		String FILENAME2 = "Results/outputpartialmatch.txt";
-		FileWriter fw2 = new FileWriter(FILENAME2, false);
-		fw2.write("");
-		fw2.close();
-
-		// Delete the content of the outputnotmatch file
-		String FILENAME3 = "Results/outputnotmatch.txt";
-		FileWriter fw3 = new FileWriter(FILENAME3, false);
-		fw3.write("");
-		fw3.close();
+		
+		Globals.fw3 = new FileWriter(Globals.FILENAME3, false);
+		Globals.fw3.write("");
+		Globals.bw3 = new BufferedWriter(Globals.fw3);
+		
 
 		//
 		// String engineType = null;
@@ -131,5 +131,11 @@ public class CommandLineUI {
 			Profiling.printProfiling();
 
 		}
+		Globals.fw1.close();
+		Globals.fw2.close();
+		Globals.fw3.close();
+		
+		
 	}
+	
 }

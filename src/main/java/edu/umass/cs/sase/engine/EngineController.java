@@ -25,6 +25,7 @@
 
 package edu.umass.cs.sase.engine;
 
+import java.io.FileWriter;
 import java.io.IOException;
 
 import edu.lhc.krr.sase.history.MatchedRunDescriptor;
