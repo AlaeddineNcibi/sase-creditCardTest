@@ -120,11 +120,12 @@ public String toStringMatch(int runId){
 		
 		ArrayList<Integer> arraylist= new ArrayList<Integer>();
 		String temp = "\n";
-		temp += "FM,";
-		temp+= runId;
+		int eventnb=0;
+		temp+= runId +",";
+		temp += "FM";
 		if(this.events != null){
 			for(int i = 0; i < this.events.length; i ++){
-				temp += ",";
+				temp += ","+ ++eventnb +":";
 				temp += this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("location");
 				this.addAttributeValue(  this.events[i], i);
 				}
@@ -138,19 +139,13 @@ public String toStringMatch(int runId){
 	}
 public String toStringPMatch(int runId){
 	
-	ArrayList<Integer> arraylist= new ArrayList<Integer>();
 	String temp = "\n";
-	
-	
-	//this.getNfa().getStates()[0].getEdges()[0].getPredicates()[0].getAttributeName()
-	
-	//temp += "This is a match for this query:\n:";
-	//temp += this.nfa.toString();
-	temp += "PM,";
-	temp+= runId;
+	int eventnb=0;
+	temp+= runId +",";
+	temp += "PM";
 	if(this.events != null){
 		for(int i = 0; i < this.events.length; i ++){
-			temp += ",";
+			temp += ","+ ++eventnb +":";
 			temp += this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("location");
 			this.addAttributeValue(  this.events[i], i);
 			}
