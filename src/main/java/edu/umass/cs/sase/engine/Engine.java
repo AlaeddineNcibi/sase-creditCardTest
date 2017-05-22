@@ -1182,7 +1182,7 @@ public class Engine {
 	
 
 	public void outputMatch(Match m, int runId) throws IOException{
-		String FILENAME = "/Users/Alaeddine/Desktop/sase-master/Results/outputmatch.txt";
+		String FILENAME = "Results/outputmatch.txt";
 		FileWriter fw = new FileWriter(FILENAME, true);
 		BufferedWriter bw = new BufferedWriter(fw);
 		Profiling.numberOfMatches ++;
@@ -1202,7 +1202,7 @@ public class Engine {
 	
 
 	public void outputPartialMatch(Match m, int runId) throws IOException{
-		String FILENAME = "/Users/Alaeddine/Desktop/sase-master/Results/outputpartialmatch.txt";
+		String FILENAME = "Results/outputpartialmatch.txt";
 		FileWriter fw = new FileWriter(FILENAME, true);
 		BufferedWriter bw = new BufferedWriter(fw);
 		if(ConfigFlags.printResults){
@@ -1213,7 +1213,7 @@ public class Engine {
 	}
 	
 	public void outputnNoNMatch(Match m, int runId) throws IOException{
-		String FILENAME = "/Users/Alaeddine/Desktop/sase-master/Results/outputnotmatch.txt";
+		String FILENAME = "Results/outputnotmatch.txt";
 		FileWriter fw = new FileWriter(FILENAME, true);
 		BufferedWriter bw = new BufferedWriter(fw);
 

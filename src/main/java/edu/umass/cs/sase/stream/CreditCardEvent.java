@@ -2,60 +2,60 @@ package edu.umass.cs.sase.stream;
 
 public class CreditCardEvent implements Event {
 
-	int id; //Event id
+	int id; // Event id
 	int timestamp;
 	String eventType;
-	String cardId;
-	int location; 
+	String crdId;
+	int ltion;
 	double mount;
-	
+
 	public CreditCardEvent(int id, int timestamp, String cardId, double amount, int location) {
 		super();
 		this.id = id;
 		this.timestamp = timestamp;
-		this.cardId = cardId;
-		this.mount= amount;
-		this.location=location;
+		this.crdId = cardId;
+		this.mount = amount;
+		this.ltion = location;
 	}
 
 	public CreditCardEvent(int id, int timestamp, String eventType, String cardId, double amount, int location) {
 		super();
 		this.id = id;
 		this.timestamp = timestamp;
-		this.cardId = cardId;
-		this.mount= amount;
-		this.location=location;
+		this.crdId = cardId;
+		this.mount = amount;
+		this.ltion = location;
 		this.eventType = eventType;
 	}
 
 	@Override
 	public int getAttributeByName(String attributeName) {
-		
+
 		if (attributeName.equalsIgnoreCase("id"))
 			return this.id;
 		if (attributeName.equalsIgnoreCase("timestamp"))
 			return this.timestamp;
-		if (attributeName.equalsIgnoreCase("location"))
-			return this.location;
-	
+		if (attributeName.equalsIgnoreCase("ltion"))
+			return this.ltion;
+
 		return 0;
 	}
 
 	@Override
 	public double getAttributeByNameDouble(String attributeName) {
 		if (attributeName.equalsIgnoreCase("mount"))
-			return 	this.mount;
+			return this.mount;
 		return 0;
 	}
 
 	@Override
 	public String getAttributeByNameString(String attributeName) {
-		
-		if (attributeName.equalsIgnoreCase("cardId"))
-			return this.cardId;
-		
+
+		if (attributeName.equalsIgnoreCase("crdId"))
+			return this.crdId;
+
 		if (attributeName.equalsIgnoreCase("eventType"))
-			return 	this.eventType;
+			return this.eventType;
 		return null;
 	}
 
@@ -65,11 +65,11 @@ public class CreditCardEvent implements Event {
 			return 0;
 		if (attributeName.equalsIgnoreCase("timestamp"))
 			return 0;
-		if (attributeName.equalsIgnoreCase("location"))
+		if (attributeName.equalsIgnoreCase("ltion"))
 			return 0;
 		if (attributeName.equalsIgnoreCase("mount"))
-			return 	1;
-		if (attributeName.equalsIgnoreCase("cardId"))
+			return 1;
+		if (attributeName.equalsIgnoreCase("crdId"))
 			return 2;
 		if (attributeName.equalsIgnoreCase("eventType"))
 			return 2;
@@ -99,13 +99,14 @@ public class CreditCardEvent implements Event {
 		// TODO Auto-generated method stub
 		return this.eventType;
 	}
+
 	/**
 	 * Clones the event
 	 */
-	public Object clone(){
+	public Object clone() {
 		CreditCardEvent o = null;
 		try {
-			o = (CreditCardEvent)super.clone();
+			o = (CreditCardEvent) super.clone();
 		} catch (CloneNotSupportedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -116,7 +117,7 @@ public class CreditCardEvent implements Event {
 	@Override
 	public String toString() {
 		return "CreditCardEvent [id=" + id + ", timestamp=" + timestamp + ", eventType=" + eventType + ", cardId="
-				+ cardId + ", amount=" + mount + ", location=" + location + "]";
+				+ crdId + ", amount=" + mount + ", location=" + ltion + "]";
 	}
-	
+
 }

@@ -38,7 +38,7 @@ import edu.umass.cs.sase.stream.Event;
  */
 public class Run  implements Cloneable{
 	int runID;
-	int clonedId;
+	int clonedId=-1;
 	private static  AtomicInteger idrun = new AtomicInteger(0);
 	/**
 	 * The event ids selected by the run
@@ -269,7 +269,10 @@ public class Run  implements Cloneable{
 		o.setEventIds((ArrayList<Integer>)this.getEventIds().clone());
 		o.setState((int[])this.getState().clone());
 		o.setNfa(nfa);
-		o.clonedId=this.runID;
+		if (this.clonedId!=this.runID)
+		o.clonedId=this.clonedId;
+		else
+			o.clonedId=this.runID;
 		o.runID=idrun.incrementAndGet();
 		return o;
 	}
