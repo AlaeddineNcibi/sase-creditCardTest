@@ -126,7 +126,7 @@ public String toStringMatch(int runId){
 		if(this.events != null){
 			for(int i = 0; i < this.events.length; i ++){
 				temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
-				temp += this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("location");
+				temp += (int) this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("ltion");
 				this.addAttributeValue(  this.events[i], i);
 				}
 		}else if(this.eventList.size() > 0){
@@ -146,7 +146,7 @@ public String toStringPMatch(int runId){
 	if(this.events != null){
 		for(int i = 0; i < this.events.length; i ++){
 			temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
-			temp += this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("location");
+			temp += (int)this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("ltion");
 			this.addAttributeValue(  this.events[i], i);
 			}
 	}else if(this.eventList.size() > 0){
@@ -174,7 +174,7 @@ public String toStringNoNMatch(int runId){
 	if(this.events != null){
 		for(int i = 0; i < this.events.length; i ++){
 			temp += ",";
-			temp += this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("location");
+			temp +=(int) this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("ltion");
 			this.addAttributeValue(  this.events[i], i);
 			}
 	}else if(this.eventList.size() > 0){
