@@ -125,7 +125,7 @@ public String toStringMatch(int runId){
 		temp += "FM";
 		if(this.events != null){
 			for(int i = 0; i < this.events.length; i ++){
-				temp += ","+ ++eventnb +":";
+				temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
 				temp += this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("location");
 				this.addAttributeValue(  this.events[i], i);
 				}
@@ -145,7 +145,7 @@ public String toStringPMatch(int runId){
 	temp += "PM";
 	if(this.events != null){
 		for(int i = 0; i < this.events.length; i ++){
-			temp += ","+ ++eventnb +":";
+			temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
 			temp += this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("location");
 			this.addAttributeValue(  this.events[i], i);
 			}

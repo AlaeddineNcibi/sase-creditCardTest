@@ -67,8 +67,9 @@ public class EngineController {
 	 * 
 	 * @param engineType
 	 *            specifies the engine type, currently supports "sharingengine"
+	 * @throws IOException 
 	 */
-	public EngineController(String engineType) {
+	public EngineController(String engineType) throws IOException {
 
 		myEngine = new Engine();
 

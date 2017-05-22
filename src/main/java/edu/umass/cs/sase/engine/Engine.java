@@ -1389,12 +1389,19 @@ public class Engine {
 	}
 
 	public void outputPartialMatch(Match m, int runId) throws IOException {
+		String FILENAME1 = "Results/outputmatch.txt";
+		FileWriter fw1 = new FileWriter(FILENAME1, true);
+		BufferedWriter bw1 = new BufferedWriter(fw1);
+		
 		String FILENAME = "Results/outputpartialmatch.txt";
 		FileWriter fw = new FileWriter(FILENAME, true);
 		BufferedWriter bw = new BufferedWriter(fw);
 		if (ConfigFlags.printResults) {
 			bw.write(m.toStringPMatch(runId));
 			bw.close();
+			
+			bw1.write(m.toStringPMatch(runId));
+			bw1.close();
 		}
 
 	}
