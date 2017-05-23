@@ -118,41 +118,60 @@ public class Match {
 	
 public String toStringMatch(int runId){
 		
-		ArrayList<Integer> arraylist= new ArrayList<Integer>();
+		//ArrayList<Integer> arraylist= new ArrayList<Integer>();
 		String temp = "\n";
-		int eventnb=0;
+		//int eventnb=0;
 		temp+= runId +",";
 		temp += "FM";
+		
+		
 		if(this.events != null){
-			for(int i = 0; i < this.events.length; i ++){
-				temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
-				temp += (int) this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("ltion");
-				this.addAttributeValue(  this.events[i], i);
-				}
+			if (this.events[0].getEventType().equalsIgnoreCase("activity")){
+				for(int i = 0; i < this.events.length; i ++){
+					temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
+					temp +=  this.events[i].getAttributeByName("rte");
+					this.addAttributeValue(  this.events[i], i);
+					}
+			} else  if (this.events[0].getEventType().equalsIgnoreCase("creditcard")){
+				for(int i = 0; i < this.events.length; i ++){
+					temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
+					temp += (int) this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("ltion");
+					this.addAttributeValue(  this.events[i], i);
+					}
+			}
 		}else if(this.eventList.size() > 0){
 			for(int i = 0; i < this.eventList.size(); i ++){
 				temp += this.eventList.get(i).toString() +"\n";
-				}
+			}
 		}
-
+System.out.println(temp);
 		return temp;
 	}
 public String toStringPMatch(int runId){
 	
 	String temp = "\n";
-	int eventnb=0;
+	//int eventnb=0;
 	temp+= runId +",";
 	temp += "PM";
 	if(this.events != null){
-		for(int i = 0; i < this.events.length; i ++){
-			temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
-			temp += (int)this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("ltion");
-			this.addAttributeValue(  this.events[i], i);
-			}
+		if (this.events[0].getEventType().equalsIgnoreCase("activity")){
+			for(int i = 0; i < this.events.length; i ++){
+				temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
+				temp +=  this.events[i].getAttributeByName("rte");
+				this.addAttributeValue(  this.events[i], i);
+				}
+		} else  if (this.events[0].getEventType().equalsIgnoreCase("creditcard")){
+			for(int i = 0; i < this.events.length; i ++){
+				temp += ","+ this.events[i].getAttributeByName("timestamp") +":";
+				temp += (int) this.events[i].getAttributeByNameDouble("mount") +":"+ this.events[i].getAttributeByName("ltion");
+				this.addAttributeValue(  this.events[i], i);
+				}
+		}
 	}else if(this.eventList.size() > 0){
+		
 		for(int i = 0; i < this.eventList.size(); i ++){
 			temp += this.eventList.get(i).toString() +"\n";
-			}
+		}
 	}
 
 	return temp;

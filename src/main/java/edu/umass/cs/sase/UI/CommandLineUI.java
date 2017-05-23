@@ -55,12 +55,14 @@ public class CommandLineUI {
 	
 	public static void main(String args[]) throws CloneNotSupportedException,
 		EvaluationException, IOException {
-		// String nfaFileLocation = "src/main/resources/activity.query";
-		String nfaFileLocation = "src/main/resources/creditCard.query";
-		// String nfaFileLocation =
-		// "src/main/resources/transactionsFarAwayPlaces.query";
+	    String nfaFileLocation = "src/main/resources/activity.query";
+		//String nfaFileLocation = "src/main/resources/creditCard.query";
+		// String nfaFileLocation = "src/main/resources/transactionsFarAwayPlaces.query";
+	 /*   try(BufferedWriter bw = new BufferedWriter(new FileWriter(""))){
+	    	bw.write(arg0);
+	    }*/
 		
-		Globals.fw1 = new FileWriter(Globals.FILENAME1, false);
+	/*	Globals.fw1 = new FileWriter(Globals.FILENAME1, false);
 		Globals.fw1.write("");
 		Globals.bw1 = new BufferedWriter(Globals.fw1);
 		
@@ -71,7 +73,7 @@ public class CommandLineUI {
 		
 		Globals.fw3 = new FileWriter(Globals.FILENAME3, false);
 		Globals.fw3.write("");
-		Globals.bw3 = new BufferedWriter(Globals.fw3);
+		Globals.bw3 = new BufferedWriter(Globals.fw3);*/
 		
 
 		//
@@ -117,8 +119,10 @@ public class CommandLineUI {
 			System.out.println("\nRepeat No." + (i + 1) + " is started...");
 			// /////myStreamController = new
 			// StreamController(StockStreamConfig.streamSize,"activityevent");
-			myStreamController = new StreamController(
-					StockStreamConfig.streamSize, "creditCardevent");
+			
+			myStreamController = new StreamController(StockStreamConfig.streamSize, "activityevent");
+			//myStreamController = new StreamController(StockStreamConfig.streamSize, "creditCardevent");
+			
 			// generate with probabilty greater then 100, add symbol to
 			// eventType
 			// myStreamController.generateStockEventsAsTest(5);
@@ -131,9 +135,9 @@ public class CommandLineUI {
 			Profiling.printProfiling();
 
 		}
-		Globals.fw1.close();
+	/*	Globals.fw1.close();
 		Globals.fw2.close();
-		Globals.fw3.close();
+		Globals.fw3.close();*/
 		
 		
 	}

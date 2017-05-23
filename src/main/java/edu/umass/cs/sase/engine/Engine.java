@@ -24,6 +24,8 @@
  */
 package edu.umass.cs.sase.engine;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1372,9 +1374,11 @@ public class Engine {
 
 		System.out.println("Runs " + runId);
 
-		// String FILENAME = "Results/outputmatch.txt";
-		// FileWriter fw = new FileWriter(FILENAME, true);
-		// BufferedWriter bw = new BufferedWriter(fw);
+		 String FILENAME = "Results/outputmatch.txt"; //non
+		 FileWriter fw = new FileWriter(FILENAME, true);//non
+		 BufferedWriter bw = new BufferedWriter(fw);//non
+		
+		
 		Profiling.numberOfMatches++;
 		// this.matches.addMatch(m);
 		if (ConfigFlags.printResults) {
@@ -1384,39 +1388,42 @@ public class Engine {
 				System.out.println("debug");
 			}
 			System.out.println(m.toString());
-			// System.out.println(Profiling.numberOfEvents);
-			Globals.bw1.write(m.toStringMatch(runId));
-			// bw.close();
+
+			bw.write(m.toStringMatch(runId));//non
+			//Globals.bw1.write(m.toStringMatch(runId));//oui
+			 bw.close();//non
 		}
 
 	}
 
 	public void outputPartialMatch(Match m, int runId) throws IOException {
-		// String FILENAME1 = "Results/outputmatch.txt";
-		// FileWriter fw1 = new FileWriter(FILENAME1, true);
-		// BufferedWriter bw1 = new BufferedWriter(fw1);
+		 String FILENAME1 = "Results/outputmatch.txt";//non
+		 FileWriter fw1 = new FileWriter(FILENAME1, true);//non
+		 BufferedWriter bw1 = new BufferedWriter(fw1);//non
 
-		// String FILENAME = "Results/outputpartialmatch.txt";
-		// FileWriter fw = new FileWriter(FILENAME, true);
-		// BufferedWriter bw = new BufferedWriter(fw);
+		 String FILENAME = "Results/outputpartialmatch.txt";//non
+		 FileWriter fw = new FileWriter(FILENAME, true);//non
+		 BufferedWriter bw = new BufferedWriter(fw);//non
 		if (ConfigFlags.printResults) {
-			Globals.bw1.write(m.toStringPMatch(runId));
-			// bw.close();
-
-			Globals.bw2.write(m.toStringPMatch(runId));
-			// bw.close();
+			//Globals.bw1.write(m.toStringPMatch(runId));//oui
+			//Globals.bw1.write(m.toStringPMatch(runId));//non
+			 
+			bw.write(m.toStringPMatch(runId));//oui
+			bw1.write(m.toStringPMatch(runId));//non
+			 bw.close();//non
+			 bw1.close();//non
 		}
 
 	}
 
 	public void outputnNoNMatch(Match m, int runId) throws IOException {
-		// String FILENAME = "Results/outputnotmatch.txt";
-		// FileWriter fw = new FileWriter(FILENAME, true);
-		// BufferedWriter bw = new BufferedWriter(fw);
+		 String FILENAME = "Results/outputnotmatch.txt";//non
+		 FileWriter fw = new FileWriter(FILENAME, true);//non
+		 BufferedWriter bw = new BufferedWriter(fw);//non
 
 		if (ConfigFlags.printResults) {
-			Globals.bw3.write(m.toStringNoNMatch(runId));
-			// bw.close();
+			//Globals.bw3.write(m.toStringNoNMatch(runId));//oui
+			 bw.close();//non
 		}
 
 	}
